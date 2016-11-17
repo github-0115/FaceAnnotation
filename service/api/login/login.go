@@ -5,7 +5,7 @@ import (
 	vars "FaceAnnotation/service/vars"
 	security "FaceAnnotation/utils/security"
 	"fmt"
-	"strings"
+	//	"strings"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/inconshreveable/log15"
@@ -34,24 +34,22 @@ func Login(c *gin.Context) {
 	if err != nil {
 		log.Error(fmt.Sprintf("find user error:%s", err.Error()))
 		c.JSON(400, gin.H{
-			"code":    vars.ErrUserNotFound.Code,
-			"message": vars.ErrUserNotFound.Msg,
+			"code":    vars.ErrLoginParams.Code,
+			"message": vars.ErrLoginParams.Msg,
 		})
 		return
 	}
 
-	savedPassword := security.GeneratePasswordHash(password)
-
-	if !strings.EqualFold(userColl.Password, savedPassword) {
-		log.Error(fmt.Sprintf("user login password error"))
+	if !security.CheckPasswordHash(password, userColl.Password) {
+		log.Error(fmt.Sprintf("password error.username=%s, password=%s, saved_password=%s", username, password, userColl.Password))
 		c.JSON(400, gin.H{
-			"code":    vars.ErrUserNotFound.Code,
-			"message": vars.ErrUserNotFound.Msg,
+			"code":    vars.ErrLoginParams.Code,
+			"message": vars.ErrLoginParams.Msg,
 		})
 		return
 	}
 
-	c.JSON(400, gin.H{
+	c.JSON(200, gin.H{
 		"code":    0,
 		"message": "login success !",
 	})

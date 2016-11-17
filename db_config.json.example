@@ -1,0 +1,9 @@
+{
+    "uc_mongo": {
+        "host": "PC-201611150834",
+        "port": 27017,
+        "db": "user_center",
+        "user": "",
+        "password": ""
+    }
+}

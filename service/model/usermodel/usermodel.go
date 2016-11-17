@@ -48,3 +48,23 @@ func QueryUser(username string) (*UserColl, error) {
 	}
 	return coll, nil
 }
+
+func QueryUserExist(userId string) (int, error) {
+
+	s := db.User.GetSession()
+	defer s.Close()
+	count, err := s.DB(db.User.DB).C("user").Find(bson.M{
+		"user_id": userId,
+	}).Count()
+
+	if err != nil {
+		log.Error(fmt.Sprintf("find user err ", err))
+		if err == mgo.ErrNotFound {
+			return 0, ErrUserNotFound
+		} else if err == mgo.ErrCursor {
+			return 0, ErrUserCursor
+		}
+		return 0, err
+	}
+	return count, nil
+}

@@ -6,8 +6,12 @@ type Err struct {
 }
 
 var (
-	ErrBindJSON     = &Err{100, "bind json error"}
-	ErrLoginParams  = &Err{101, "login params err"}
-	ErrUserNotFound = &Err{102, "user not found"}
-	ErrLogin        = &Err{103, "user login err"}
+	ErrBindJSON      = &Err{100, "bind json error"}
+	ErrUserNotFound  = &Err{101, "user not found"}
+	ErrUserCursor    = &Err{102, "find user cursor err"}
+	ErrUserNameExist = &Err{103, "user name exist err"}
+	ErrUserIdExist   = &Err{104, "user id exist err"}
+	ErrUserSave      = &Err{105, "user save err"}
+	ErrLoginParams   = &Err{106, "user login params err"}
+	ErrLogin         = &Err{107, "user login err"}
 )

@@ -2,6 +2,7 @@ package main
 
 import (
 	loginendpoint "FaceAnnotation/service/api/login"
+	userendpoint "FaceAnnotation/service/api/user"
 	"flag"
 	"fmt"
 	"time"
@@ -21,7 +22,7 @@ func ready() {
 	flag.Parse()
 	if *port == 8060 {
 		gin.SetMode(gin.ReleaseMode)
-		log.Info(fmt.Sprintf("非测试模式"))
+		log.Info(fmt.Sprintf("ReleaseMode"))
 	}
 }
 
@@ -40,10 +41,16 @@ func main() {
 		ValidateHeaders: false,
 	}))
 
-	r.POST("login", loginendpoint.Login)
+	if *debug == false {
+		r.POST("add_user", userendpoint.AddUser)
+	}
 
 	authorized := r.Group("/user")
 	{
-		authorized.GET("")
+		authorized.POST("login", loginendpoint.Login)
 	}
+
+	p := fmt.Sprintf(":%d", *port)
+	log.Info("listen port " + p)
+	r.Run(p)
 }
