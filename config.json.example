@@ -1,3 +1,4 @@
 {
-    "log_dir": "log"
+    "log_dir": "log",
+	"domian": "http://192.168.199.163:8030/"
 }
