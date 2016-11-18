@@ -1,6 +1,8 @@
 package main
 
 import (
+	faceendpoint "FaceAnnotation/service/api/face"
+	imageendpoint "FaceAnnotation/service/api/image"
 	loginendpoint "FaceAnnotation/service/api/login"
 	userendpoint "FaceAnnotation/service/api/user"
 	"flag"
@@ -41,13 +43,25 @@ func main() {
 		ValidateHeaders: false,
 	}))
 
-	if *debug == false {
-		r.POST("add_user", userendpoint.AddUser)
-	}
+	r.Static("origin_images", "./origin_images")
 
 	authorized := r.Group("/user")
 	{
 		authorized.POST("login", loginendpoint.Login)
+	}
+
+	imagegroup := r.Group("/image")
+	{
+		imagegroup.GET("get", imageendpoint.GetImage)
+	}
+
+	facegroup := r.Group("/face")
+	{
+		facegroup.POST("upsert", faceendpoint.UpsertFacePoint)
+	}
+
+	if *debug == false {
+		r.POST("add_user", userendpoint.AddUser)
 	}
 
 	p := fmt.Sprintf(":%d", *port)

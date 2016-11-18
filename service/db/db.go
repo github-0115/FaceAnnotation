@@ -12,6 +12,7 @@ var (
 	Session   *mgo.Session
 	DBUserUri string
 	User      *MongoSession
+	Face      *MongoSession
 )
 
 func init() {
@@ -28,5 +29,9 @@ func init() {
 	User = new(MongoSession).Init(
 		c.DBCfg.UserCenterMongoTask,
 		"user",
+	)
+	Face = new(MongoSession).Init(
+		c.DBCfg.FaceMongoTask,
+		"face",
 	)
 }

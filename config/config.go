@@ -17,10 +17,20 @@ var (
 
 type Config struct {
 	LogDir string `json:"log_dir"`
+	Domian string `json:"domian"`
 }
 
 type DBConfig struct {
-	UserCenterMongoTask *MongoCfg `json:"uc_mongo"`
+	RedisBroker         *RedisBrokerCfg `json:"redis"`
+	UserCenterMongoTask *MongoCfg       `json:"uc_mongo"`
+	FaceMongoTask       *MongoCfg       `json:"face_mongo"`
+}
+
+type RedisBrokerCfg struct {
+	Host     string `json:"host"`
+	DB       int64  `json:"db"`
+	Port     int    `json:"port"`
+	Password string `json:"password"`
 }
 
 type MongoCfg struct {
@@ -38,6 +48,14 @@ func (s *MongoCfg) String() string {
 		user = s.User + ":"
 	}
 	return fmt.Sprintf("mongodb://%s%s%s:%d/%s", user, pwd, s.Host, s.Port, s.DB)
+}
+
+func (s *RedisBrokerCfg) String() string {
+	pwd, user := "", ""
+	if s.Password != "" {
+		pwd = s.Password + "@"
+	}
+	return fmt.Sprintf("redis://%s%s%s:%d/%s", user, pwd, s.Host, s.Port, s.DB)
 }
 
 func init() {
