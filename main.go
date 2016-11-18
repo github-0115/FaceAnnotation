@@ -4,6 +4,7 @@ import (
 	faceendpoint "FaceAnnotation/service/api/face"
 	imageendpoint "FaceAnnotation/service/api/image"
 	loginendpoint "FaceAnnotation/service/api/login"
+	taskendpoint "FaceAnnotation/service/api/task"
 	userendpoint "FaceAnnotation/service/api/user"
 	"flag"
 	"fmt"
@@ -52,7 +53,14 @@ func main() {
 
 	imagegroup := r.Group("/image")
 	{
-		imagegroup.GET("get", imageendpoint.GetImage)
+		imagegroup.GET("get", imageendpoint.GetImageList)
+		imagegroup.GET("get_one_image", imageendpoint.GetOneImage)
+	}
+
+	taskgroup := r.Group("/task")
+	{
+		taskgroup.GET("task_list", taskendpoint.GetTaskList)
+		taskgroup.GET("task", taskendpoint.GetTask)
 	}
 
 	facegroup := r.Group("/face")

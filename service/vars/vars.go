@@ -17,8 +17,9 @@ var (
 	ErrJsonUnmarshal    = &Err{200, "json unmarshal err"}
 	ErrFaceModelUpsert  = &Err{201, "face points upsert error"}
 	ErrFaceCursor       = &Err{202, "find face url cursor err"}
-	ErrLocalImageGet    = &Err{300, "get local image list error"}
+	ErrLocalImageGet    = &Err{300, "get local image error"}
 	ErrTaskListNotFound = &Err{400, "task list not found error"}
 	ErrTaskNotFound     = &Err{401, "task not found error"}
 	ErrTaskCursor       = &Err{402, "find task cursor err"}
+	ErrTaskCompleted    = &Err{403, "The task has been completed !"}
 )

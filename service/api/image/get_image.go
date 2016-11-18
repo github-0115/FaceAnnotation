@@ -2,7 +2,7 @@ package image
 
 import (
 	facemodel "FaceAnnotation/service/model/facemodel"
-	imagemodel "FaceAnnotation/service/model/imagemodel"
+	taskmodel "FaceAnnotation/service/model/taskmodel"
 	vars "FaceAnnotation/service/vars"
 	"fmt"
 	"strings"
@@ -11,14 +11,15 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
-func GetImage(c *gin.Context) {
-
-	image_list, err := imagemodel.GetImageList("./origin_images")
+func GetImageList(c *gin.Context) {
+	title := c.Query("title")
+	log.Error(fmt.Sprintf("get local task title err %S", title))
+	taskModel, err := taskmodel.QueryTask(title)
 	if err != nil {
-		log.Error(fmt.Sprintf("get local image list err %S", err.Error()))
+		log.Error(fmt.Sprintf("get task error:%s", err.Error()))
 		c.JSON(400, gin.H{
-			"code":    vars.ErrJsonUnmarshal.Code,
-			"message": vars.ErrJsonUnmarshal.Msg,
+			"code":    vars.ErrTaskNotFound.Code,
+			"message": vars.ErrTaskNotFound.Msg,
 		})
 		return
 	}
@@ -34,8 +35,14 @@ func GetImage(c *gin.Context) {
 			return
 		}
 	}
+	var not_list []string
+	if already_list == nil {
 
-	not_list := RemoveDuplicatesAndEmpty(image_list, already_list)
+		not_list = taskModel.Url
+		return
+	} else {
+		not_list = RemoveDuplicatesAndEmpty(taskModel, already_list)
+	}
 
 	c.JSON(200, gin.H{
 		"code": 0,
@@ -43,16 +50,16 @@ func GetImage(c *gin.Context) {
 	})
 }
 
-func RemoveDuplicatesAndEmpty(a []string, b []*facemodel.FaceUrl) (ret []string) {
+func RemoveDuplicatesAndEmpty(a *taskmodel.TaskModel, b []*facemodel.FaceUrl) (ret []string) {
 
-	a_len := len(a)
+	a_len := len(a.Url)
 	b_len := len(b)
 	for i := 0; i < a_len; i++ {
 		for j := 0; j < b_len; j++ {
-			if strings.EqualFold(a[i], b[j].Url) {
+			if strings.EqualFold(a.Url[i], b[j].Url) {
 				continue
 			}
-			ret = append(ret, a[i])
+			ret = append(ret, a.Url[i])
 		}
 	}
 

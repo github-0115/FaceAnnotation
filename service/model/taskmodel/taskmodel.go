@@ -50,13 +50,13 @@ func QueryTaskList(status string) ([]*TaskModel, error) {
 	return result, nil
 }
 
-func QueryTask(task string) (*TaskModel, error) {
+func QueryTask(title string) (*TaskModel, error) {
 	coll := new(TaskModel)
 	s := db.Face.GetSession()
 	defer s.Close()
 
 	err := s.DB(db.Face.DB).C("task").Find(bson.M{
-		"task": task,
+		"title": title,
 	}).One(coll)
 
 	if err != nil {
