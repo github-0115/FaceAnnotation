@@ -16,8 +16,10 @@ var (
 )
 
 type Config struct {
-	LogDir string `json:"log_dir"`
-	Domian string `json:"domian"`
+	LogDir           string `json:"log_dir"`
+	LoginSecret      string `json:"login_secret"`
+	LoginTokenExpire int    `json:"login_token_expire"`
+	Domian           string `json:"domian"`
 }
 
 type DBConfig struct {

@@ -6,6 +6,7 @@ import (
 	loginendpoint "FaceAnnotation/service/api/login"
 	taskendpoint "FaceAnnotation/service/api/task"
 	userendpoint "FaceAnnotation/service/api/user"
+	middleware "FaceAnnotation/service/middleware"
 	"flag"
 	"fmt"
 	"time"
@@ -52,18 +53,21 @@ func main() {
 	}
 
 	imagegroup := r.Group("/image")
+	imagegroup.Use(middleware.AuthToken)
 	{
-		imagegroup.GET("get", imageendpoint.GetImageList)
+		imagegroup.GET("get_images", imageendpoint.GetImageList)
 		imagegroup.GET("get_one_image", imageendpoint.GetOneImage)
 	}
 
 	taskgroup := r.Group("/task")
+	taskgroup.Use(middleware.AuthToken)
 	{
 		taskgroup.GET("task_list", taskendpoint.GetTaskList)
-		taskgroup.GET("task", taskendpoint.GetTask)
+		taskgroup.GET("get_one_task", taskendpoint.GetTask)
 	}
 
 	facegroup := r.Group("/face")
+	facegroup.Use(middleware.AuthToken)
 	{
 		facegroup.POST("upsert", faceendpoint.UpsertFacePoint)
 	}

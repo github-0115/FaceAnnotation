@@ -22,7 +22,7 @@ var client = redis.NewClient(&redis.Options{
 	DB:       cfg.DBCfg.RedisBroker.DB,
 })
 
-func SetCheckEmailStr(imageName string, isYes string) error {
+func SetCheckImageStr(imageName string, isYes string) error {
 	err := client.Set(imageurlKey+imageName, isYes, time.Duration(20)*time.Minute).Err()
 	if err != nil {
 		log.Error(fmt.Sprintf("imageurlKey: imageName=%s, isYes=%s, err=%#v.", imageName, isYes, err))
@@ -31,7 +31,7 @@ func SetCheckEmailStr(imageName string, isYes string) error {
 	return nil
 }
 
-func GetCheckEmailStr(imageName string) (string, error) {
+func GetCheckImageStr(imageName string) (string, error) {
 	isYes, err := client.Get(imageurlKey + imageName).Result()
 	if err == redis.Nil {
 		log.Error(fmt.Sprintf("imageurlKey: imageName=%s, isYes=%s, err=%#v.", imageName, isYes, err))
@@ -41,4 +41,16 @@ func GetCheckEmailStr(imageName string) (string, error) {
 		return "", err
 	}
 	return isYes, nil
+}
+
+func DeleteCheckImageStr(imageName string) error {
+	err := client.Del(imageurlKey + imageName).Err()
+	if err == redis.Nil {
+		log.Error(fmt.Sprintf("del imageurlKey: imageName=%s, err=%#v.", imageName, err))
+		return RedisNotFound
+	} else if err != nil {
+
+		return err
+	}
+	return nil
 }

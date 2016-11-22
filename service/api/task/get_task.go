@@ -11,6 +11,14 @@ import (
 
 func GetTask(c *gin.Context) {
 	title := c.Query("title")
+	if title == "" {
+		log.Error(fmt.Sprintf("get task parmars error:%s"))
+		c.JSON(400, gin.H{
+			"code":    vars.ErrTaskParmars.Code,
+			"message": vars.ErrTaskParmars.Msg,
+		})
+		return
+	}
 
 	taskModel, err := taskmodel.QueryTask(title)
 	if err != nil {
@@ -20,6 +28,10 @@ func GetTask(c *gin.Context) {
 			"message": vars.ErrTaskNotFound.Msg,
 		})
 		return
+	}
+
+	if taskModel == nil {
+		taskModel = &taskmodel.TaskModel{}
 	}
 
 	c.JSON(200, gin.H{

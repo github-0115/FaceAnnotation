@@ -12,11 +12,16 @@ import (
 )
 
 type TaskModel struct {
-	Title     string    `bson:"title" json:"title" binding:"required"`
-	Count     int64     `bson:"count" json:"count" binding:"required"`
-	Url       []string  `bson:"url" json:"url" binding:"required"`
-	Status    int64     `bson:"status" json:"status" binding:"required"`
-	CreatedAt time.Time `bson:"created_at" binding:"required" json:"created_at"`
+	Title     string        `bson:"title" json:"title" binding:"required"`
+	Count     int64         `bson:"count" json:"count" binding:"required"`
+	Images    []*ImageModel `bson:"images" json:"images" binding:"required"`
+	Status    int64         `bson:"status" json:"status" binding:"required"` // 0 未开始  1 正在进行  2 已完成
+	CreatedAt time.Time     `bson:"created_at" json:"created_at" binding:"required"`
+}
+
+type ImageModel struct {
+	Url    string `bson:"url" json:"url" binding:"required"` // 0 未标  1 已标注完成
+	Status int64  `bson:"status" json:"status" binding:"required"`
 }
 
 var (
@@ -30,13 +35,13 @@ func (t *TaskModel) Save() error {
 	return s.DB(db.Face.DB).C("task").Insert(&t)
 }
 
-func QueryTaskList(status string) ([]*TaskModel, error) {
+func QueryTaskList(status int64) ([]*TaskModel, error) {
 	s := db.Face.GetSession()
 	defer s.Close()
 	var result []*TaskModel
 	err := s.DB(db.Face.DB).C("task").Find(bson.M{
 		"status": status,
-	}).All(result)
+	}).All(&result)
 
 	if err != nil {
 		log.Error(fmt.Sprintf("find task err ", err))
@@ -69,4 +74,47 @@ func QueryTask(title string) (*TaskModel, error) {
 		return nil, err
 	}
 	return coll, nil
+}
+
+func UpdateTaskStatus(title string, status int64) error {
+
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	err := s.DB(db.Face.DB).C("task").Update(bson.M{
+		"title": title,
+	}, bson.M{"$set": bson.M{"status": status}})
+
+	if err != nil {
+		log.Error(fmt.Sprintf("update task status err ", err))
+		if err == mgo.ErrNotFound {
+			return ErrTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return ErrTaskModelCursor
+		}
+		return err
+	}
+	return nil
+}
+
+func UpdateTaskImageStatus(title string, url string, status int64) error {
+
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	err := s.DB(db.Face.DB).C("task").Update(bson.M{
+		"title":      title,
+		"images.url": url,
+	}, bson.M{"$set": bson.M{"images.$.status": status}})
+
+	if err != nil {
+		log.Error(fmt.Sprintf("update task status err ", err))
+		if err == mgo.ErrNotFound {
+			return ErrTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return ErrTaskModelCursor
+		}
+		return err
+	}
+	return nil
 }

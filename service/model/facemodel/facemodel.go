@@ -12,6 +12,7 @@ import (
 )
 
 type FaceModel struct {
+	Title string    `bson:"title" json:"title" binding:"required"`
 	User  string    `bson:"user" json:"user" binding:"required"`
 	Url   string    `bson:"url" json:"url" binding:"required"`
 	Faces []*Points `binding:"required" bson:"faces" json:"faces"`

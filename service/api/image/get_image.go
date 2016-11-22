@@ -13,7 +13,15 @@ import (
 
 func GetImageList(c *gin.Context) {
 	title := c.Query("title")
-	log.Error(fmt.Sprintf("get local task title err %S", title))
+	if title == "" {
+		log.Error(fmt.Sprintf("get task parmars error:%s"))
+		c.JSON(400, gin.H{
+			"code":    vars.ErrImageParmars.Code,
+			"message": vars.ErrImageParmars.Msg,
+		})
+		return
+	}
+
 	taskModel, err := taskmodel.QueryTask(title)
 	if err != nil {
 		log.Error(fmt.Sprintf("get task error:%s", err.Error()))
@@ -24,24 +32,14 @@ func GetImageList(c *gin.Context) {
 		return
 	}
 
-	already_list, err := facemodel.QueryAll()
-	if err != nil {
-		log.Error(fmt.Sprintf("get already image list err %S", err.Error()))
-		if err != facemodel.ErrFaceModelNotFound {
-			c.JSON(400, gin.H{
-				"code":    vars.ErrFaceCursor.Code,
-				"message": vars.ErrFaceCursor.Msg,
-			})
-			return
-		}
-	}
 	var not_list []string
-	if already_list == nil {
+	if taskModel.Status != 2 {
 
-		not_list = taskModel.Url
-		return
+		not_list = getNotAnnotationList(taskModel)
+
 	} else {
-		not_list = RemoveDuplicatesAndEmpty(taskModel, already_list)
+
+		not_list = make([]string, 0, 0)
 	}
 
 	c.JSON(200, gin.H{
@@ -52,14 +50,14 @@ func GetImageList(c *gin.Context) {
 
 func RemoveDuplicatesAndEmpty(a *taskmodel.TaskModel, b []*facemodel.FaceUrl) (ret []string) {
 
-	a_len := len(a.Url)
+	a_len := len(a.Images)
 	b_len := len(b)
 	for i := 0; i < a_len; i++ {
 		for j := 0; j < b_len; j++ {
-			if strings.EqualFold(a.Url[i], b[j].Url) {
+			if strings.EqualFold(a.Images[i].Url, b[j].Url) {
 				continue
 			}
-			ret = append(ret, a.Url[i])
+			ret = append(ret, a.Images[i].Url)
 		}
 	}
 

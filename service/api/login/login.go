@@ -1,12 +1,15 @@
 package login
 
 import (
+	cfg "FaceAnnotation/config"
 	user "FaceAnnotation/service/model/usermodel"
 	vars "FaceAnnotation/service/vars"
 	security "FaceAnnotation/utils/security"
 	"fmt"
+	"time"
 	//	"strings"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	log "github.com/inconshreveable/log15"
 )
@@ -49,9 +52,23 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{
-		"code":    0,
-		"message": "login success !",
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id":  userColl.UserId,
+		"exp":      time.Now().Add(time.Hour * time.Duration(cfg.Cfg.LoginTokenExpire)).Unix(),
+		"username": userColl.Username,
 	})
 
+	tokenStr, err := token.SignedString([]byte(cfg.Cfg.LoginSecret))
+	if err != nil {
+		log.Error("gen token failed. err=" + err.Error())
+		c.JSON(400, gin.H{
+			"message": "gen token failed.",
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"code":  0,
+		"token": tokenStr,
+	})
 }

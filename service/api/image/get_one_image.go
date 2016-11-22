@@ -2,8 +2,6 @@ package image
 
 import (
 	cfg "FaceAnnotation/config"
-	facemodel "FaceAnnotation/service/model/facemodel"
-	//	imagemodel "FaceAnnotation/service/model/imagemodel"
 	taskmodel "FaceAnnotation/service/model/taskmodel"
 	vars "FaceAnnotation/service/vars"
 	redismodel "FaceAnnotation/utils/redisclient"
@@ -21,7 +19,15 @@ var (
 
 func GetOneImage(c *gin.Context) {
 	title := c.Query("title")
-	log.Error(fmt.Sprintf("get local task title err %S", title))
+	if title == "" {
+		log.Error(fmt.Sprintf("get task parmars error:%s"))
+		c.JSON(400, gin.H{
+			"code":    vars.ErrImageParmars.Code,
+			"message": vars.ErrImageParmars.Msg,
+		})
+		return
+	}
+
 	taskModel, err := taskmodel.QueryTask(title)
 	if err != nil {
 		log.Error(fmt.Sprintf("get task error:%s", err.Error()))
@@ -32,38 +38,17 @@ func GetOneImage(c *gin.Context) {
 		return
 	}
 
-	//	image_list, err := imagemodel.GetImageList("./origin_images")
-	//	if err != nil {
-	//		log.Error(fmt.Sprintf("get local image list err %S", err.Error()))
-	//		c.JSON(400, gin.H{
-	//			"code":    vars.ErrJsonUnmarshal.Code,
-	//			"message": vars.ErrJsonUnmarshal.Msg,
-	//		})
-	//		return
-	//	}
-
-	already_list, err := facemodel.QueryAll()
-	if err != nil {
-		log.Error(fmt.Sprintf("get already image list err %S", err.Error()))
-		if err != facemodel.ErrFaceModelNotFound {
-			c.JSON(400, gin.H{
-				"code":    vars.ErrFaceCursor.Code,
-				"message": vars.ErrFaceCursor.Msg,
-			})
-			return
-		}
-	}
-
 	var not_list []string
-	if already_list == nil {
+	if taskModel.Status != 2 {
 
-		not_list = taskModel.Url
+		not_list = getNotAnnotationList(taskModel)
 
 	} else {
-		not_list = RemoveDuplicatesAndEmpty(taskModel, already_list)
+
+		not_list = make([]string, 0, 0)
 	}
 
-	if not_list == nil {
+	if len(not_list) == 0 {
 		log.Error(fmt.Sprintf("The task has been completed !"))
 		c.JSON(400, gin.H{
 			"code":    vars.ErrTaskCompleted.Code,
@@ -88,13 +73,22 @@ func GetOneImage(c *gin.Context) {
 	})
 }
 
+func getNotAnnotationList(a *taskmodel.TaskModel) (ret []string) {
+	for _, res := range a.Images {
+		if res.Status == 0 {
+			ret = append(ret, res.Url)
+		}
+	}
+	return
+}
+
 func getNotCompletedImage(not_list []string) string {
 
 	for _, res := range not_list {
-		_, err := redismodel.GetCheckEmailStr(res)
+		_, err := redismodel.GetCheckImageStr(res)
 		if err != nil {
 			if err == redismodel.RedisNotFound {
-				err = redismodel.SetCheckEmailStr(res, "yes")
+				err = redismodel.SetCheckImageStr(res, "yes")
 				if err != nil {
 					log.Error(fmt.Sprintf("image set redis err %S", err.Error()))
 				}

@@ -14,12 +14,18 @@ var (
 	ErrUserSave         = &Err{105, "user save err"}
 	ErrLoginParams      = &Err{106, "user login params err"}
 	ErrLogin            = &Err{107, "user login err"}
-	ErrJsonUnmarshal    = &Err{200, "json unmarshal err"}
-	ErrFaceModelUpsert  = &Err{201, "face points upsert error"}
-	ErrFaceCursor       = &Err{202, "find face url cursor err"}
-	ErrLocalImageGet    = &Err{300, "get local image error"}
-	ErrTaskListNotFound = &Err{400, "task list not found error"}
-	ErrTaskNotFound     = &Err{401, "task not found error"}
-	ErrTaskCursor       = &Err{402, "find task cursor err"}
-	ErrTaskCompleted    = &Err{403, "The task has been completed !"}
+	ErrNeedToken        = &Err{301, "need auth token"}
+	ErrInvalidToken     = &Err{301, "invalid token"}
+	ErrIncompleteToken  = &Err{301, "token incomplete"}
+	ErrTaskParmars      = &Err{400, "task list parmars err"}
+	ErrTaskCompleted    = &Err{401, "The task has been completed !"}
+	ErrTaskNotFound     = &Err{402, "task not found error"}
+	ErrTaskCursor       = &Err{403, "find task cursor err"}
+	ErrTaskListNotFound = &Err{404, "task list not found error"}
+	ErrJsonUnmarshal    = &Err{600, "json unmarshal err"}
+	ErrFaceParmars      = &Err{601, "face parmars is nil err"}
+	ErrFaceModelUpsert  = &Err{602, "face points upsert error"}
+	ErrFaceCursor       = &Err{603, "find face url cursor err"}
+	ErrLocalImageGet    = &Err{700, "get local image error"}
+	ErrImageParmars     = &Err{701, "image list parmars err"}
 )
