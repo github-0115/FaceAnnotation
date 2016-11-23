@@ -6,34 +6,47 @@ import (
 	vars "FaceAnnotation/service/vars"
 	redismodel "FaceAnnotation/utils/redisclient"
 	"fmt"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/inconshreveable/log15"
 )
 
+type FaceParams struct {
+	Title string              `json:"title"`
+	User  string              `json:"user"`
+	Url   string              `json:"url"`
+	Faces []*facemodel.Points `json:"faces"`
+}
+
 func UpsertFacePoint(c *gin.Context) {
-	face_str := c.PostForm("face")
 
-	if face_str == "" {
-		log.Error(fmt.Sprintf("face parmars error: face point is nil"))
+	var faceParams FaceParams
+	if err := c.BindJSON(&faceParams); err != nil {
+		log.Error(fmt.Sprintf("bind json error:%s", err.Error()))
 		c.JSON(400, gin.H{
-			"code":    vars.ErrFaceParmars.Code,
-			"message": vars.ErrFaceParmars.Msg,
+			"code":    vars.ErrBindJSON.Code,
+			"message": vars.ErrBindJSON.Msg,
 		})
 		return
 	}
+	title := faceParams.Title
+	user := faceParams.User
+	url := faceParams.Url
+	faces := faceParams.Faces
 
-	faceModel, err := facemodel.StringToJson(face_str)
-	if err != nil {
-		log.Error(fmt.Sprintf("face json unmarshal error:%s", err.Error()))
-		c.JSON(400, gin.H{
-			"code":    vars.ErrJsonUnmarshal.Code,
-			"message": vars.ErrJsonUnmarshal.Msg,
-		})
-		return
+	faceModel := &facemodel.FaceModel{
+		Title: title,
+		User:  user,
+		Url:   url,
+		Faces: faces,
 	}
 
-	_, err = facemodel.UpsertFaceResult(faceModel)
+	if len(faceModel.Faces) == 0 {
+		log.Error(fmt.Sprintf("face points len = 0 "))
+	}
+
+	_, err := facemodel.UpsertFaceResult(faceModel)
 	if err != nil {
 		log.Error(fmt.Sprintf("face points upsert error:%s", err.Error()))
 		c.JSON(400, gin.H{
@@ -48,10 +61,10 @@ func UpsertFacePoint(c *gin.Context) {
 		if err != nil {
 			log.Error(fmt.Sprintf("get task error:%s", err.Error()))
 		}
-
-		err = taskmodel.UpdateTaskImageStatus(faceModel.Title, faceModel.Url, 1)
+		url_strs := strings.Split(faceModel.Url, "/")
+		err = taskmodel.UpdateTaskImageStatus(faceModel.Title, url_strs[len(url_strs)-1], 1)
 		if err != nil {
-			log.Error(fmt.Sprintf("update task status 1 error:%s", err.Error()))
+			log.Error(fmt.Sprintf("update task image status 1 error:%s", err.Error()))
 		}
 
 		if taskModel.Status == 0 {

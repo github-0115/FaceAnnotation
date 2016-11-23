@@ -7,7 +7,6 @@ import (
 	security "FaceAnnotation/utils/security"
 	"fmt"
 	"time"
-	//	"strings"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"

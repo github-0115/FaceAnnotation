@@ -108,7 +108,7 @@ func UpdateTaskImageStatus(title string, url string, status int64) error {
 	}, bson.M{"$set": bson.M{"images.$.status": status}})
 
 	if err != nil {
-		log.Error(fmt.Sprintf("update task status err ", err))
+		log.Error(fmt.Sprintf("update task image status err ", err))
 		if err == mgo.ErrNotFound {
 			return ErrTaskModelNotFound
 		} else if err == mgo.ErrCursor {

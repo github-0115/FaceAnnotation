@@ -10,6 +10,15 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
+type TaskRep struct {
+	Title     string                  `json:"title"`
+	AllCount  int64                   `json:"all_count"`
+	NotCount  int64                   `json:"not_count"`
+	Images    []*taskmodel.ImageModel `json:"images"`
+	Status    int64                   `json:"status"` // 0 未开始  1 正在进行  2 已完成
+	CreatedAt string                  `json:"created_at"`
+}
+
 func GetTaskList(c *gin.Context) {
 	status, err := strconv.Atoi(c.Query("status"))
 	if err != nil {
@@ -31,12 +40,38 @@ func GetTaskList(c *gin.Context) {
 		return
 	}
 
+	var taskRep_list []*TaskRep
 	if task_list == nil {
-		task_list = make([]*taskmodel.TaskModel, 0, 0)
+		taskRep_list = make([]*TaskRep, 0, 0)
+	} else {
+		taskRep_list = GetTaskRepList(task_list)
 	}
 
 	c.JSON(200, gin.H{
 		"code":      0,
-		"task_list": task_list,
+		"task_list": taskRep_list,
 	})
+}
+
+func GetTaskRepList(t []*taskmodel.TaskModel) []*TaskRep {
+	taskRep_list := make([]*TaskRep, 0, 0)
+	for _, res := range t {
+		rep := &TaskRep{
+			Title:     res.Title,
+			AllCount:  res.Count,
+			Images:    res.Images,
+			Status:    res.Status,
+			CreatedAt: res.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+		var count int64 = 0
+		for _, res := range res.Images {
+			if res.Status == 0 {
+				count = count + 1
+			}
+		}
+		rep.NotCount = count
+		taskRep_list = append(taskRep_list, rep)
+	}
+
+	return taskRep_list
 }
