@@ -64,6 +64,7 @@ func main() {
 	{
 		taskgroup.GET("task_list", taskendpoint.GetTaskList)
 		taskgroup.GET("get_one_task", taskendpoint.GetTask)
+		taskgroup.POST("import_task", taskendpoint.ImportTask)
 	}
 
 	facegroup := r.Group("/face")
