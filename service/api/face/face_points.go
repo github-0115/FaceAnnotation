@@ -13,10 +13,11 @@ import (
 )
 
 type FaceParams struct {
-	Title string              `json:"title"`
-	User  string              `json:"user"`
-	Url   string              `json:"url"`
-	Faces []*facemodel.Points `json:"faces"`
+	Title       string                   `json:"title"`
+	User        string                   `json:"user"`
+	Url         string                   `json:"url"`
+	Faces       []*facemodel.FacesPoints `json:"faces"`
+	OriginFaces []*facemodel.Landmarks   `json:"origin_faces"`
 }
 
 func UpsertFacePoint(c *gin.Context) {
@@ -34,12 +35,14 @@ func UpsertFacePoint(c *gin.Context) {
 	user := faceParams.User
 	url := faceParams.Url
 	faces := faceParams.Faces
+	originFaces := faceParams.OriginFaces
 
 	faceModel := &facemodel.FaceModel{
-		Title: title,
-		User:  user,
-		Url:   url,
-		Faces: faces,
+		Title:       title,
+		User:        user,
+		Url:         url,
+		Faces:       faces,
+		OriginFaces: originFaces,
 	}
 
 	if len(faceModel.Faces) == 0 {
