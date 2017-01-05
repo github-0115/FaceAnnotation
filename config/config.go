@@ -20,6 +20,13 @@ type Config struct {
 	LoginSecret      string `json:"login_secret"`
 	LoginTokenExpire int    `json:"login_token_expire"`
 	Domian           string `json:"domian"`
+	ALAkId           string `json:"al_ak_id"`
+	ALAkSecret       string `json:"al_ak_secret"`
+	ALAkDomian       string `json:"al_ak_domian"`
+	FaceApiKey       string `json:"face_api_key"`
+	FaceApiSecret    string `json:"face_api_secret"`
+	FaceDetectUrl    string `json:"face_detect_url"`
+	FaceLandmarkUrl  string `json:"face_landmark_url"`
 }
 
 type DBConfig struct {
