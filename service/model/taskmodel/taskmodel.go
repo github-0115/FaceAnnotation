@@ -2,11 +2,8 @@ package taskmodel
 
 import (
 	db "FaceAnnotation/service/db"
-	//	smalltaskmodel "FaceAnnotation/service/model/smalltaskmodel"
-	//	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	log "github.com/inconshreveable/log15"
@@ -136,52 +133,4 @@ func UpdateTaskImageStatus(title string, url string, status int64) error {
 		return err
 	}
 	return nil
-}
-
-func ByteToTaskModel(filebyte []byte) (*TaskModel, []*ImportModel, error) {
-
-	urlStr := string(filebyte)
-	url_lines := strings.Split(urlStr, "\n")
-
-	url_list := make([]string, 0, 0)
-	for _, url_line := range url_lines {
-		if url_line != "" {
-
-			url_list = append(url_list, url_line)
-		}
-	}
-
-	importTask, importModelList, err := importFileToTaskModel(url_list)
-	if err != nil {
-		log.Error(fmt.Sprintf("json marshal err==%s", err))
-		return nil, nil, err
-	}
-	return importTask, importModelList, nil
-}
-
-func importFileToTaskModel(s []string) (*TaskModel, []*ImportModel, error) {
-	list := make([]*ImportModel, 0, len(s))
-	taskModel := &TaskModel{
-		Count:     int64(len(s)),
-		Status:    0,
-		CreatedAt: time.Now(),
-	}
-	//	images := make([]*ImageModel, 0, len(s))
-	//	for _, res := range s {
-	//		rep := new(ImportModel)
-	//		if err := json.Unmarshal([]byte(res), &rep); err != nil {
-	//			log.Error(fmt.Sprintf("json unmarshal err=%s", err))
-
-	//			return nil, nil, err
-	//		}
-	//		list = append(list, rep)
-	//		image := &ImageModel{
-	//			Url:    rep.Url,
-	//			Status: 0,
-	//		}
-	//		images = append(images, image)
-	//	}
-	//	taskModel.Images = images
-
-	return taskModel, list, nil
 }

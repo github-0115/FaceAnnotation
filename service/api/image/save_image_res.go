@@ -55,7 +55,7 @@ func SaveImageRes(c *gin.Context) {
 		})
 		return
 	}
-	//	deepirRes := imageModel.Results
+
 	if imageModel.Results["deepir"] == nil {
 		imageModel.Results["deepir"] = make(map[string][]*imagemodel.Points)
 	}

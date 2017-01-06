@@ -21,8 +21,9 @@ type ImageRep struct {
 }
 
 func GetImage(c *gin.Context) {
-	name, _ := c.Get("username")
-	username := name.(string)
+	//	name, _ := c.Get("username")
+	//	username := name.(string)
+	username := c.Query("username")
 	smallTaskId := c.Query("small_task_id")
 
 	smallTaskModel, err := smalltaskmodel.QuerySmallTask(smallTaskId)
@@ -46,6 +47,15 @@ func GetImage(c *gin.Context) {
 	}
 	//All images not complete
 	notImages := getNotImageList(imageList, username, smallTaskModel.Areas, smallTaskModel.LimitCount, smallTaskId)
+	//	log.Info(fmt.Sprintf("image query notImages %s err", notImages))
+	if len(notImages) == 0 {
+		log.Error(fmt.Sprintf("Under the task gets no pictures err"))
+		c.JSON(400, gin.H{
+			"code":    vars.ErrNotImage.Code,
+			"message": vars.ErrNotImage.Msg,
+		})
+		return
+	}
 	var md5Str *imagemodel.ImageModel
 	for _, image := range notImages {
 		timeOutModels, err := timeoutmodel.QuerySmallTaskImage(image.Md5, smallTaskId)
@@ -63,7 +73,16 @@ func GetImage(c *gin.Context) {
 			md5Str = image
 			break
 		}
-
+		var flag bool = false
+		for _, res := range timeOutModels {
+			if strings.EqualFold(res.User, username) {
+				flag = true
+				break
+			}
+		}
+		if flag {
+			continue
+		}
 		result := image.Results["deepir"][smallTaskModel.Areas]
 		var count int64 = 0
 		for _, res := range result {
@@ -78,7 +97,15 @@ func GetImage(c *gin.Context) {
 
 		md5Str = image
 		break
+	}
 
+	if md5Str == nil {
+		log.Error(fmt.Sprintf("Under the task gets no pictures err"))
+		c.JSON(400, gin.H{
+			"code":    vars.ErrNotImage.Code,
+			"message": vars.ErrNotImage.Msg,
+		})
+		return
 	}
 
 	timeOutModel := timeoutmodel.TimeOutModel{
@@ -117,42 +144,35 @@ func getNotImageList(imageList []*imagemodel.ImageModel, username string, area s
 	list := make([]*imagemodel.ImageModel, 0, 0)
 	for _, image := range imageList {
 		result := image.Results["deepir"][area]
-		if len(result) == 0 {
+		//		log.Info(fmt.Sprintf("image query result %s err", result))
+		if len(result) == 0 || result == nil {
 			list = append(list, image)
 			continue
 		}
-		var count int64 = 0
+
+		var (
+			count int64 = 0
+			flag  bool  = true
+		)
 		for _, res := range result {
 			if res.User == username {
 				if strings.EqualFold(res.SmallTaskId, stmId) {
+					log.Info(fmt.Sprintf("image query result user %s %s err", res.User, username))
+					flag = false
 					break
 				}
 				continue
 			}
+
 			if strings.EqualFold(res.SmallTaskId, stmId) {
 				count += 1
 			}
-			if count == limitCount {
-				break
-			}
+
 		}
-		list = append(list, image)
+
+		if count < limitCount && flag {
+			list = append(list, image)
+		}
 	}
 	return list
 }
-
-//	timeOutModel, err := timeoutmodel.QueryUserImage(username)
-//	if err != nil {
-//		if err != timeoutmodel.ErrTimeOutModelNotFound {
-//			log.Error(fmt.Sprintf("image query err", err.Error()))
-//			c.JSON(400, gin.H{
-//				"code":    vars.ErrImageModelNotFound.Code,
-//				"message": vars.ErrImageModelNotFound.Msg,
-//			})
-//			return
-//		}
-//	}
-
-//	if timeOutModel != nil {
-//		//
-//	}

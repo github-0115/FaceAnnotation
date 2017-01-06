@@ -83,7 +83,7 @@ func ImportImage(c *gin.Context) {
 			return
 		}
 
-		_, err = uploadmodel.UploadFile(imageFile)
+		_, err = uploadmodel.UploadFile(photoName, fileByte)
 		if err != nil {
 			log.Error(fmt.Sprintf("image %s upload oss err %s", imageFileHeader.Filename, err.Error()))
 		}

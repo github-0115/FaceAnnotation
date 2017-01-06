@@ -2,5 +2,12 @@
     "log_dir": "log",
 	"login_secret": "9c36c69e053f11e68ba5ac87a31a4093",
 	"login_token_expire": 24,
-	"domian": "http://192.168.199.163:8030/"
+	"domian": "http://192.168.199.163:8030/",
+	"al_ak_id": "amt8DO0Yw201XooG",
+	"al_ak_secret": "R9Sw6XtcJR3JcuLT9qvrjvVeT5jslv",
+	"al_ak_domian": "http://oss-cn-hangzhou.aliyuncs.com",
+	"face_api_key": "5cf0a809099330320f34ab9284e5ccf1",
+	"face_api_secret": "gpu2oUNxDA2jWM-9hc1pInODYgqKXtMo",
+	"face_detect_url": "http://apicn.faceplusplus.com/v2/detection/detect",
+	"face_landmark_url": "http://apicn.faceplusplus.com/v2/detection/landmark"
 }

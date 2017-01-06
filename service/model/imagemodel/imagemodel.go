@@ -16,19 +16,11 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-//type ImageModel struct {
-//	TaskId    string      `bson:"task_id" json:"task_id" binding:"required"` //与 taskmodel 关联
-//	Md5       string      `bson:"md5" json:"md5" binding:"required"`
-//	Results   []*Result   `bson:"results" json:"results" binding:"required"`
-//	ThrFaces  []*ThrFaces `binding:"required" bson:"thr_faces" json:"thr_faces"`
-//	CreatedAt time.Time   `bson:"created_at" json:"created_at" binding:"required"`
-//}
-
 type ImageModel struct {
 	TaskId    []string                        `bson:"task_id" json:"task_id" binding:"required"` //与 taskmodel 关联
 	Md5       string                          `bson:"md5" json:"md5" binding:"required"`
 	Results   map[string]map[string][]*Points `bson:"results" json:"results" binding:"required"`
-	ThrFaces  map[string]interface{}          `binding:"required" bson:"thr_faces" json:"thr_faces"`
+	ThrFaces  map[string][]interface{}        `binding:"required" bson:"thr_faces" json:"thr_faces"`
 	Url       string                          `binding:"required" bson:"url" json:"url"`
 	CreatedAt time.Time                       `bson:"created_at" json:"created_at" binding:"required"`
 }

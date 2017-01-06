@@ -88,6 +88,28 @@ func QueryNotSmallTask() ([]*SmallTaskModel, error) {
 	return results, nil
 }
 
+func QueryAreaNotSmallTask(area string) ([]*SmallTaskModel, error) {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	var results []*SmallTaskModel
+	err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
+		"areas":  area,
+		"status": bson.M{"$ne": TaskStatus.Success},
+	}).All(&results)
+
+	if err != nil {
+		log.Error(fmt.Sprintf("find small_task err ", err))
+		if err == mgo.ErrNotFound {
+			return nil, ErrSmallTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return nil, ErrSmallTaskModelCursor
+		}
+		return nil, err
+	}
+	return results, nil
+}
+
 func QuerySmallTasks(status int64) ([]*SmallTaskModel, error) {
 	s := db.Face.GetSession()
 	defer s.Close()

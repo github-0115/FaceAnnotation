@@ -11,7 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"mime/multipart"
+	//	"mime/multipart"
 	"net/http"
 	"strings"
 
@@ -29,40 +29,36 @@ var (
 	ErrReadAllFile       = errors.New("oss ErrReadAllFile err")
 )
 
-func UploadFile(file multipart.File) (string, error) {
-	fileByte, err := ioutil.ReadAll(file)
-	if err != nil {
-		log.Error(fmt.Sprintf("ioutil  ReadAll file err" + err.Error()))
-		return "", ErrReadAllFile
-	}
+//func UploadFile(photoName string, []byte) (string, error) {
+////	fileByte, err := ioutil.ReadAll(file)
+////	if err != nil {
+////		log.Error(fmt.Sprintf("ioutil  ReadAll file err" + err.Error()))
+////		return "", ErrReadAllFile
+////	}
 
-	h := md5.New()
-	h.Write(fileByte)
-	photoName := hex.EncodeToString(h.Sum(nil))
+//	//	h := md5.New()
+//	//	h.Write(fileByte)
+//	//	photoName := hex.EncodeToString(h.Sum(nil))
 
-	photoUrl, err := Ossload(photoName, fileByte)
-	if err != nil {
-		log.Error(fmt.Sprintf("user oss photo failed. err=%#v", err))
-		if err == ErrClient {
-			return "", ErrClient
-		} else if err == ErrIsBucketExist {
-			return "", ErrIsBucketExist
-		} else if err == ErrCreateBucket {
-			return "", ErrCreateBucket
-		} else if err == ErrBucket {
-			return "", ErrBucket
-		}
-		return "", ErrPutObjectFromFile
-	}
+//	_, err = Ossload(photoName, fileByte)
+//	if err != nil {
+//		log.Error(fmt.Sprintf("user oss photo failed. err=%#v", err))
+//		if err == ErrClient {
+//			return photoName, ErrClient
+//		} else if err == ErrIsBucketExist {
+//			return photoName, ErrIsBucketExist
+//		} else if err == ErrCreateBucket {
+//			return "", ErrCreateBucket
+//		} else if err == ErrBucket {
+//			return "", ErrBucket
+//		}
+//		return "", ErrPutObjectFromFile
+//	}
 
-	if photoUrl == "" {
-		return "", nil
-	}
+//	return photoName, nil
+//}
 
-	return photoUrl, nil
-}
-
-func UploadUrlsFile(urls []string, points map[string]interface{}) (string, error) {
+func UploadUrlsFile(urls []string, points map[string][]interface{}) (string, error) {
 	bucket, err := ossBucket()
 	if err != nil {
 		return "", err
@@ -83,7 +79,7 @@ func UploadUrlsFile(urls []string, points map[string]interface{}) (string, error
 	return "", nil
 }
 
-func UploadLocalFiles(urls []string, points map[string]interface{}) (string, error) {
+func UploadLocalFiles(urls []string, points map[string][]interface{}) (string, error) {
 	bucket, err := ossBucket()
 	if err != nil {
 		return "", err
@@ -114,7 +110,7 @@ func UploadLocalFiles(urls []string, points map[string]interface{}) (string, err
 	return "import success", nil
 }
 
-func ossWorker(bucket *oss.Bucket, points map[string]interface{}, send, getchan chan string) {
+func ossWorker(bucket *oss.Bucket, points map[string][]interface{}, send, getchan chan string) {
 
 	for res := range send {
 
@@ -137,7 +133,11 @@ func ossWorker(bucket *oss.Bucket, points map[string]interface{}, send, getchan 
 		im := &imagemodel.ImageModel{
 		//			TaskId: "", //taskid
 		}
-		im.ThrFaces[names[len(names)-1]] = points[names[len(names)-1]]
+		//		im.ThrFaces["deepir"][names[len(names)-1]] = points[names[len(names)-1]]
+		if im.ThrFaces["deepir_import"] == nil {
+			im.ThrFaces["deepir_import"] = make([]interface{}, 0, 0)
+		}
+		im.ThrFaces["deepir_import"] = []interface{}{points[names[len(names)-1]]}
 
 		err = bucket.PutObject(photoName, bytes.NewReader(fileByte))
 		if err != nil {
@@ -157,20 +157,20 @@ func ossBucket() (*oss.Bucket, error) {
 		return nil, ErrClient
 	}
 
-	isExist, err := client.IsBucketExist("annotation")
+	isExist, err := client.IsBucketExist("faceannotation")
 	if err != nil {
 		log.Error(fmt.Sprintf("oss client.IsBucketExist  err" + err.Error()))
 		return nil, ErrIsBucketExist
 	}
 
 	if isExist {
-		bucket, err = client.Bucket("annotation")
+		bucket, err = client.Bucket("faceannotation")
 		if err != nil {
 			log.Error(fmt.Sprintf("oss client Bucket err" + err.Error()))
 			return nil, ErrBucket
 		}
 	} else {
-		err = client.CreateBucket("annotation")
+		err = client.CreateBucket("faceannotation")
 		if err != nil {
 			log.Error(fmt.Sprintf("oss client CreateBucket err" + err.Error()))
 			return nil, ErrCreateBucket
@@ -178,12 +178,32 @@ func ossBucket() (*oss.Bucket, error) {
 	}
 
 	// 设置Bucket ACL
-	err = client.SetBucketACL("annotation", oss.ACLPublicRead)
+	err = client.SetBucketACL("faceannotation", oss.ACLPublicRead)
 	if err != nil {
 		log.Error(fmt.Sprintf("oss set Bucket ACL err" + err.Error()))
 	}
 
 	return bucket, nil
+}
+
+func UploadFile(photoName string, fileByte []byte) (string, error) {
+
+	_, err := Ossload(photoName, fileByte)
+	if err != nil {
+		log.Error(fmt.Sprintf("user oss photo failed. err=%#v", err))
+		if err == ErrClient {
+			return photoName, ErrClient
+		} else if err == ErrIsBucketExist {
+			return photoName, ErrIsBucketExist
+		} else if err == ErrCreateBucket {
+			return "", ErrCreateBucket
+		} else if err == ErrBucket {
+			return "", ErrBucket
+		}
+		return "", ErrPutObjectFromFile
+	}
+
+	return photoName, nil
 }
 
 func Ossload(fileName string, fileByte []byte) (string, error) {
@@ -193,20 +213,20 @@ func Ossload(fileName string, fileByte []byte) (string, error) {
 		return "", ErrClient
 	}
 
-	isExist, err := client.IsBucketExist("annotation")
+	isExist, err := client.IsBucketExist("faceannotation")
 	if err != nil {
 		log.Error(fmt.Sprintf("oss client.IsBucketExist  err" + err.Error()))
 		return "", ErrIsBucketExist
 	}
 
 	if isExist {
-		bucket, err = client.Bucket("annotation")
+		bucket, err = client.Bucket("faceannotation")
 		if err != nil {
 			log.Error(fmt.Sprintf("oss client Bucket err" + err.Error()))
 			return "", ErrBucket
 		}
 	} else {
-		err = client.CreateBucket("annotation")
+		err = client.CreateBucket("faceannotation")
 		if err != nil {
 			log.Error(fmt.Sprintf("oss client CreateBucket err" + err.Error()))
 			return "", ErrCreateBucket
@@ -214,7 +234,7 @@ func Ossload(fileName string, fileByte []byte) (string, error) {
 	}
 
 	// 设置Bucket ACL
-	err = client.SetBucketACL("annotation", oss.ACLPublicRead)
+	err = client.SetBucketACL("faceannotation", oss.ACLPublicRead)
 	if err != nil {
 		log.Error(fmt.Sprintf("oss set Bucket ACL err" + err.Error()))
 	}
@@ -225,7 +245,7 @@ func Ossload(fileName string, fileByte []byte) (string, error) {
 		return "", ErrPutObjectFromFile
 	}
 
-	fileUrl := "http://annotation.oss-cn-hangzhou.aliyuncs.com/" + fileName
+	fileUrl := "http://faceannotation.oss-cn-hangzhou.aliyuncs.com/" + fileName
 
 	return fileUrl, nil
 }

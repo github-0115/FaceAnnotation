@@ -1,0 +1,13 @@
+FROM env_annotation_mnange
+
+COPY $PWD /go/src/FaceAnnotation
+
+
+RUN cd /go/src/FaceAnnotation && \
+    go build && \
+    mv FaceAnnotation / && \
+    rm -rf /go/src
+
+WORKDIR /
+
+CMD ["/FaceAnnotation"]
