@@ -14,6 +14,7 @@ import (
 	//	"mime/multipart"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	log "github.com/inconshreveable/log15"
@@ -58,7 +59,7 @@ var (
 //	return photoName, nil
 //}
 
-func UploadUrlsFile(urls []string, points map[string][]interface{}) (string, error) {
+func UploadUrlsFile(urls []string, taskid string, points map[string][]interface{}) (string, error) {
 	bucket, err := ossBucket()
 	if err != nil {
 		return "", err
@@ -68,7 +69,7 @@ func UploadUrlsFile(urls []string, points map[string][]interface{}) (string, err
 	getchan := make(chan string, len(urls))
 
 	for i := 0; i < 100; i++ {
-		go ossWorker(bucket, points, send, getchan)
+		go ossWorker(bucket, taskid, points, send, getchan)
 	}
 
 	for _, res := range urls {
@@ -79,7 +80,8 @@ func UploadUrlsFile(urls []string, points map[string][]interface{}) (string, err
 	return "", nil
 }
 
-func UploadLocalFiles(urls []string, points map[string][]interface{}) (string, error) {
+func UploadLocalFiles(urls []string, taskid string, points map[string][]interface{}) (string, error) {
+	log.Info(fmt.Sprintf("upload start%s", time.Now()))
 	bucket, err := ossBucket()
 	if err != nil {
 		return "", err
@@ -89,7 +91,7 @@ func UploadLocalFiles(urls []string, points map[string][]interface{}) (string, e
 	getchan := make(chan string, len(urls))
 
 	for i := 0; i < 100; i++ {
-		go ossWorker(bucket, points, send, getchan)
+		go ossWorker(bucket, taskid, points, send, getchan)
 	}
 
 	for _, res := range urls {
@@ -106,11 +108,12 @@ func UploadLocalFiles(urls []string, points map[string][]interface{}) (string, e
 			break
 		}
 	}
-
+	log.Info(fmt.Sprintf("upload end%s", time.Now()))
+	log.Info(fmt.Sprintf("upload res%s", results))
 	return "import success", nil
 }
 
-func ossWorker(bucket *oss.Bucket, points map[string][]interface{}, send, getchan chan string) {
+func ossWorker(bucket *oss.Bucket, taskid string, points map[string][]interface{}, send, getchan chan string) {
 
 	for res := range send {
 
@@ -123,28 +126,34 @@ func ossWorker(bucket *oss.Bucket, points map[string][]interface{}, send, getcha
 		h.Write(fileByte)
 		photoName := hex.EncodeToString(h.Sum(nil))
 
-		names := strings.Split(res, "/")
-		//		m := make(map[string]interface{})
-		//		ipt := &imagemodel.ImportPoint{
-		//			Name:   names[len(names)-1],
-		//			Points: points[names[len(names)-1]],
-		//		}
-		//		m[names[len(names)-1]] = points[names[len(names)-1]]
-		im := &imagemodel.ImageModel{
-		//			TaskId: "", //taskid
-		}
-		//		im.ThrFaces["deepir"][names[len(names)-1]] = points[names[len(names)-1]]
-		if im.ThrFaces["deepir_import"] == nil {
-			im.ThrFaces["deepir_import"] = make([]interface{}, 0, 0)
-		}
-		im.ThrFaces["deepir_import"] = []interface{}{points[names[len(names)-1]]}
+		names := strings.Split(res, "\\")
 
-		err = bucket.PutObject(photoName, bytes.NewReader(fileByte))
-		if err != nil {
-			log.Error(fmt.Sprintf("client Bucket PutObject err" + err.Error()))
+		imageColl, err := imagemodel.QueryImage(photoName)
+		if imageColl == nil {
+			imageColl = &imagemodel.ImageModel{
+				TaskId:    []string{taskid}, //taskid
+				Md5:       photoName,
+				Url:       names[len(names)-1],
+				CreatedAt: time.Now(),
+			}
+
+			err = bucket.PutObject(photoName, bytes.NewReader(fileByte))
+			if err != nil {
+				log.Error(fmt.Sprintf("client Bucket PutObject err" + err.Error()))
+			}
+		} else {
+			imageColl.TaskId = append(imageColl.TaskId, taskid)
 		}
-		im.Md5 = photoName
-		im.Save()
+
+		if imageColl.ThrFaces == nil {
+			imageColl.ThrFaces = make(map[string][]interface{})
+		}
+		imageColl.ThrFaces["deepir_import"] = points[names[len(names)-1]]
+
+		_, err = imagemodel.UpsertImageModel(imageColl)
+		if err != nil {
+			log.Error(fmt.Sprintf("image=%s update err=%s", err.Error()))
+		}
 
 		getchan <- "y"
 	}

@@ -49,9 +49,6 @@ type Points struct {
 }
 
 type Point struct {
-	//	SmallTaskId string  `bson:"small_task_id" json:"small_task_id" binding:"required"`
-	//	User        string  `bson:"user" json:"user" binding:"required"`
-	//	Area string  `bson:"area" json:"area" binding:"required"` //
 	Y float64 `binding:"required" bson:"y" json:"y"`
 	X float64 `binding:"required" bson:"x" json:"x"`
 }

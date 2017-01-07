@@ -8,7 +8,6 @@ import (
 	taskendpoint "FaceAnnotation/service/api/task"
 	userendpoint "FaceAnnotation/service/api/user"
 	middleware "FaceAnnotation/service/middleware"
-	//	thrfacemodelendpoint "FaceAnnotation/service/model/thrfacemodel"
 	"flag"
 	"fmt"
 	"time"
@@ -48,7 +47,8 @@ func main() {
 	}))
 
 	r.Static("origin_images", "./origin_images")
-
+	r.POST("import_data", dataendpoint.ImportData)
+	r.GET("getthr_res", dataendpoint.GetThrResult)
 	authorized := r.Group("/user")
 	{
 		authorized.POST("login", loginendpoint.Login)

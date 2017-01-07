@@ -20,6 +20,13 @@ func ImportData(c *gin.Context) {
 	//
 	pointFile, _, err := c.Request.FormFile("point")
 	imagePath := c.PostForm("image_path")
+	//	areas := c.PostForm("areas")
+	unitstr := c.PostForm("unit")
+	limit_user := c.PostForm("limit_user")
+	point_type := c.PostForm("point_type")
+	unit, err := strconv.Atoi(unitstr)
+	limitUser, err := strconv.Atoi(limit_user)
+	pointType, err := strconv.Atoi(point_type)
 	fileByte, err := ioutil.ReadAll(pointFile)
 	if err != nil {
 		log.Error(fmt.Sprintf("ioutil ReadAll file err" + err.Error()))
@@ -36,8 +43,9 @@ func ImportData(c *gin.Context) {
 	if imagePath != "" {
 		imageList = getFilelist(imagePath)
 	}
-
+	log.Error(fmt.Sprintf("imageList=%s,importPoints=%s", imageList, importPoints))
 	if len(imageList) != len(importPoints) {
+		log.Error(fmt.Sprintf("imageList=%d,importPoints=%d", len(imageList), len(importPoints)))
 		c.JSON(400, gin.H{
 			"code":    0,
 			"message": "image count != point count",
@@ -48,20 +56,21 @@ func ImportData(c *gin.Context) {
 	taskModel := &taskmodel.TaskModel{
 		TaskId:    taskId,
 		Count:     int64(len(imageList)),
-		Introduce: "title",
+		PointType: int64(pointType),
+		MinUnit:   int64(unit),
+		LimitUser: int64(limitUser),
+		Area:      []string{"left_eye_brow", "right_eye_brow", "left_eye", "right_eye", "left_ear", "right_ear", "mouth", "nouse", "face"},
+		Introduce: "test",
 		Status:    0,
 		CreatedAt: time.Now(),
 	}
 
-	//	url, err := uploadmodel.UploadFile(file)
-	//	if err != nil {
-	//		log.Error(fmt.Sprintf("upload file err = %s", err))
-	//	}
-
-	ss, err := uploadmodel.UploadLocalFiles(imageList, importPoints)
+	ss, err := uploadmodel.UploadLocalFiles(imageList, taskId, importPoints)
 	if err != nil {
 		log.Error(fmt.Sprintf("upload file err = %s", err))
 	}
+
+	taskModel.Save()
 
 	c.JSON(200, gin.H{
 		"code":      0,

@@ -8,7 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	//	"github.com/gin-gonic/gin"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -26,12 +26,12 @@ type Result struct {
 	Landmark map[string]*Point `json:"Landmark"`
 }
 
-func EightThreeFace(c *gin.Context) {
+func EightThreeFace(face_id string) (*EightThreeFaceModel, error) {
 	extraParams := map[string]string{
 		"api_key":    api_key,
 		"api_secret": api_secret,
 		"type":       "83p",
-		"face_id":    "78197afb212ee433d08a9a1961f64fda", //face_id
+		"face_id":    face_id, //face_id
 	}
 	fmt.Println(extraParams)
 	request, err := newMultipartRequest(landUrl, extraParams)
@@ -42,25 +42,25 @@ func EightThreeFace(c *gin.Context) {
 	resp, err := client.Do(request)
 	if err != nil {
 		log.Error(fmt.Sprintf("83 client.Do err, err=%#v", err))
+		//		return nil, err
 	}
 
 	body := &bytes.Buffer{}
 	_, err = body.ReadFrom(resp.Body)
 	if err != nil {
 		log.Error(fmt.Sprintf("83 read form err, err=%#v", err))
+		//		return nil, err
 	}
 
 	rep := new(EightThreeFaceModel)
 	if err := json.Unmarshal(body.Bytes(), &rep); err != nil {
 		log.Error(fmt.Sprintf("json unmarshal err=%s", err))
+		//		return nil, err
 	}
 
 	defer resp.Body.Close()
-
-	c.JSON(200, gin.H{
-		"code": 0,
-		"rep":  rep,
-	})
+	fmt.Println(body.String())
+	return rep, nil
 }
 
 // Creates a new file upload http request with optional extra params

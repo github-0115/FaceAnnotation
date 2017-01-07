@@ -29,14 +29,14 @@ func (tom *TimeOutModel) Save() error {
 	return s.DB(db.Face.DB).C("timeout").Insert(&tom)
 }
 
-func QueryUserImage(username string) (*TimeOutModel, error) {
-	coll := new(TimeOutModel)
+func QueryUserImages(username string) ([]*TimeOutModel, error) {
 	s := db.Face.GetSession()
 	defer s.Close()
 
+	var results []*TimeOutModel
 	err := s.DB(db.Face.DB).C("timeout").Find(bson.M{
 		"user": username,
-	}).One(coll)
+	}).All(&results)
 
 	if err != nil {
 		log.Error(fmt.Sprintf("find task image err ", err))
@@ -47,7 +47,30 @@ func QueryUserImage(username string) (*TimeOutModel, error) {
 		}
 		return nil, err
 	}
-	return coll, nil
+	return results, nil
+}
+
+func QueryUserTsakImage(username string, smId string) ([]*TimeOutModel, error) {
+
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	var results []*TimeOutModel
+	err := s.DB(db.Face.DB).C("timeout").Find(bson.M{
+		"user":          username,
+		"small_task_id": smId,
+	}).All(&results)
+
+	if err != nil {
+		log.Error(fmt.Sprintf("find task image err ", err))
+		if err == mgo.ErrNotFound {
+			return nil, ErrTimeOutModelNotFound
+		} else if err == mgo.ErrCursor {
+			return nil, ErrTimeOutModelCursor
+		}
+		return nil, err
+	}
+	return results, nil
 }
 
 func QuerySmallTaskImage(md5 string, smallTaskId string) ([]*TimeOutModel, error) {

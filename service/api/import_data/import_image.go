@@ -3,12 +3,14 @@ package import_data
 import (
 	imagemodel "FaceAnnotation/service/model/imagemodel"
 	taskmodel "FaceAnnotation/service/model/taskmodel"
+	thrfacemodel "FaceAnnotation/service/model/thrfacemodel"
 	uploadmodel "FaceAnnotation/service/model/uploadmodel"
 	vars "FaceAnnotation/service/vars"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -16,7 +18,7 @@ import (
 )
 
 func ImportImage(c *gin.Context) {
-
+	isRes := c.PostForm("isRes")
 	taskId := c.PostForm("task_id")
 	imageFile, imageFileHeader, err := c.Request.FormFile("image")
 	if err != nil || taskId == "" {
@@ -62,7 +64,6 @@ func ImportImage(c *gin.Context) {
 			})
 			return
 		}
-
 	}
 
 	if imageColl == nil {
@@ -73,35 +74,44 @@ func ImportImage(c *gin.Context) {
 			CreatedAt: time.Now(),
 		}
 
-		err := imageColl.Save()
-		if err != nil {
-			log.Error(fmt.Sprintf("image save err", err.Error()))
-			c.JSON(400, gin.H{
-				"code":    vars.ErrImageModelSave.Code,
-				"message": vars.ErrImageModelSave.Msg,
-			})
-			return
-		}
-
 		_, err = uploadmodel.UploadFile(photoName, fileByte)
 		if err != nil {
 			log.Error(fmt.Sprintf("image %s upload oss err %s", imageFileHeader.Filename, err.Error()))
 		}
 
 	} else {
-		err = imagemodel.UpdateImageModel(photoName, taskId)
+		imageColl.TaskId = append(imageColl.TaskId, taskId)
+	}
+	//face++ res
+	var thrRes *thrfacemodel.EightThreeFaceModel
+	if strings.EqualFold(isRes, "not") {
+		five, _ := thrfacemodel.ThrFaceFileRes(photoName, fileByte)
 		if err != nil {
-			log.Error(fmt.Sprintf("image update taskid err", err.Error()))
-			c.JSON(400, gin.H{
-				"code":    vars.ErrImageModelUpdate.Code,
-				"message": vars.ErrImageModelUpdate.Msg,
-			})
-			return
+			log.Error(fmt.Sprintf("get face++ five res fail err:%s", err))
 		}
+		thrRes, err = thrfacemodel.EightThreeFace(five.Face[0].FaceId)
+		if err != nil {
+			log.Error(fmt.Sprintf("get face++ 83 res fail err:%s", err))
+		}
+
+		if imageColl.ThrFaces == nil {
+			imageColl.ThrFaces = map[string][]interface{}{}
+		}
+		imageColl.ThrFaces["face++"] = append(imageColl.ThrFaces["face++"], thrRes)
+	}
+
+	_, err = imagemodel.UpsertImageModel(imageColl)
+	if err != nil {
+		log.Error(fmt.Sprintf("image update err", err.Error()))
+		c.JSON(400, gin.H{
+			"code":    vars.ErrImageModelUpdate.Code,
+			"message": vars.ErrImageModelUpdate.Msg,
+		})
+		return
 	}
 
 	c.JSON(200, gin.H{
 		"code":    0,
-		"message": taskId,
+		"task_id": taskId,
 	})
 }
