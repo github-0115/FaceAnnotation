@@ -63,8 +63,8 @@ func GetImage(c *gin.Context) {
 	if err != nil {
 		log.Error(fmt.Sprintf("image query err", err.Error()))
 		c.JSON(400, gin.H{
-			"code":    vars.ErrImageModelNotFound.Code,
-			"message": vars.ErrImageModelNotFound.Msg,
+			"code":    vars.ErrNotImage.Code,
+			"message": vars.ErrNotImage.Msg,
 		})
 		return
 	}

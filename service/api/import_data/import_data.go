@@ -59,7 +59,7 @@ func ImportData(c *gin.Context) {
 		PointType: int64(pointType),
 		MinUnit:   int64(unit),
 		LimitUser: int64(limitUser),
-		Area:      []string{"left_eye_brow", "right_eye_brow", "left_eye", "right_eye", "left_ear", "right_ear", "mouth", "nouse", "face"},
+		Area:      []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "leftEar", "rightEar", "mouth", "nouse", "face"},
 		Introduce: "test",
 		Status:    0,
 		CreatedAt: time.Now(),

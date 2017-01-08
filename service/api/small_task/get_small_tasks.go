@@ -72,6 +72,15 @@ func GetSmallTasks(c *gin.Context) {
 		return
 	}
 
+	if strings.EqualFold(smallTaskId, "") {
+		log.Error(fmt.Sprintf("not small task to allot err %s", err))
+		c.JSON(200, gin.H{
+			"code":    vars.ErrNotSmallTask.Code,
+			"message": vars.ErrNotSmallTask.Msg,
+		})
+		return
+	}
+
 	c.JSON(200, gin.H{
 		"code":          0,
 		"small_task_id": smallTaskId,
