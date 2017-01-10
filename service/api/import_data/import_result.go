@@ -45,7 +45,7 @@ func ImportResult(c *gin.Context) {
 		}
 		//		image.ThrFaces["deepir_import"] = append(image.ThrFaces["deepir_import"], []interface{}{importPoints[image.Url]})
 		image.ThrFaces["deepir_import"] = importPoints[image.Url]
-
+		//		fmt.Println(importPoints[image.Url])
 		_, err = imagemodel.UpsertImageModel(image)
 		if err != nil {
 			log.Error(fmt.Sprintf("image%s update thrres err", image.Url, err.Error()))

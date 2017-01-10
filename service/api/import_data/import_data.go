@@ -99,7 +99,7 @@ func getFilelist(path string) []string {
 
 func readPoint(dat []byte) map[string][]interface{} {
 	urlStr := strings.Replace(string(dat), " ", "", -1)
-	urls := strings.Split(urlStr, "\n")
+	urls := strings.Split(urlStr, "\r\n")
 
 	m := make(map[string][]interface{})
 	for _, url := range urls {
@@ -107,13 +107,18 @@ func readPoint(dat []byte) map[string][]interface{} {
 
 			rr := strings.Split(url, "\t")
 			pointStrs := strings.Split(rr[1], ",")
-
+			//			fmt.Println(pointStrs)
 			points := []interface{}{}
-			for _, pointStr := range pointStrs {
-				f, _ := strconv.ParseFloat(pointStr, 32)
+			for i := 0; i < len(pointStrs); i++ {
+				f, _ := strconv.ParseFloat(pointStrs[i], 64)
+				if f == 0 {
+					f, _ = strconv.ParseFloat(pointStrs[i-2], 64)
+					f += 10
+				}
 				points = append(points, f)
 			}
 
+			fmt.Println(points)
 			m[rr[0]] = points
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	vars "FaceAnnotation/service/vars"
 	security "FaceAnnotation/utils/security"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -15,6 +16,7 @@ import (
 type AddUserParams struct {
 	Managername string `json:"username"`
 	Password    string `json:"password"`
+	Identity    string `json:"identity"` //admin、fineTune、normal
 }
 
 func AddUser(c *gin.Context) {
@@ -30,6 +32,7 @@ func AddUser(c *gin.Context) {
 	}
 	username := addUserParams.Managername
 	password := addUserParams.Password
+	identity := addUserParams.Identity
 
 	userColl, err := user.QueryUser(username)
 	if err != nil {
@@ -74,11 +77,16 @@ func AddUser(c *gin.Context) {
 		return
 	}
 
+	if strings.EqualFold(identity, "") {
+		identity = user.UserIdentity.Normal
+	}
 	savedPassword := security.GeneratePasswordHash(password)
 	user_new := &user.UserColl{
 		UserId:    user_id,
 		Username:  username,
 		Password:  savedPassword,
+		Identity:  identity,
+		Status:    0,
 		CreatedAt: time.Now(),
 	}
 

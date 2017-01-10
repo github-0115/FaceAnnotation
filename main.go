@@ -69,6 +69,8 @@ func main() {
 		taskgroup.POST("create_task", taskendpoint.CreateTask)
 		taskgroup.POST("create_small_task", smalltaskendpoint.CreateSmallTask)
 		taskgroup.GET("get_small_tasks", smalltaskendpoint.GetSmallTasks)
+		taskgroup.GET("small_task_list", smalltaskendpoint.SmallTaskList)
+		taskgroup.GET("small_image_list", smalltaskendpoint.GetSmallTaskImages)
 	}
 
 	if *debug == false {

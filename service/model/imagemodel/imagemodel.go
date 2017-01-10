@@ -17,12 +17,13 @@ import (
 )
 
 type ImageModel struct {
-	TaskId    []string                        `bson:"task_id" json:"task_id" binding:"required"` //与 taskmodel 关联
-	Md5       string                          `bson:"md5" json:"md5" binding:"required"`
-	Results   map[string]map[string][]*Points `bson:"results" json:"results" binding:"required"`
-	ThrFaces  map[string][]interface{}        `binding:"required" bson:"thr_faces" json:"thr_faces"`
-	Url       string                          `binding:"required" bson:"url" json:"url"`
-	CreatedAt time.Time                       `bson:"created_at" json:"created_at" binding:"required"`
+	TaskId      []string                        `bson:"task_id" json:"task_id" binding:"required"` //与 taskmodel 关联
+	Md5         string                          `bson:"md5" json:"md5" binding:"required"`
+	Results     map[string]map[string][]*Points `bson:"results" json:"results" binding:"required"`
+	FineResults map[string][]*FineResult        `bson:"fine_results" json:"fine_results" binding:"required"`
+	ThrFaces    map[string][]interface{}        `binding:"required" bson:"thr_faces" json:"thr_faces"`
+	Url         string                          `binding:"required" bson:"url" json:"url"`
+	CreatedAt   time.Time                       `bson:"created_at" json:"created_at" binding:"required"`
 }
 
 type ThrFaces struct {
@@ -31,10 +32,13 @@ type ThrFaces struct {
 	ImportPoint         *ImportPoint                     `bson:"import_point" json:"import_point" binding:"required"`
 }
 
-type Result struct {
-	Faces     map[string][]*Points `binding:"required" bson:"faces" json:"faces"`
-	Status    int64                `bson:"status" json:"status" binding:"required"` //0:一般标图结果 1:微调结果
-	CreatedAt time.Time            `bson:"created_at" json:"created_at" binding:"required"`
+type FineResult struct {
+	SmallTaskId string              `bson:"small_task_id" json:"small_task_id" binding:"required"`
+	User        string              `bson:"user" json:"user" binding:"required"`
+	Result      map[string][]*Point `bson:"result" json:"result" binding:"required"`
+	Sys         string              `bson:"sys" json:"sys" binding:"required"`
+	CreatedAt   string              `bson:"created_at" json:"created_at" binding:"required"`
+	FinishedAt  string              `bson:"finished_at" json:"finished_at" binding:"required"`
 }
 
 type ImportPoint struct {
@@ -46,6 +50,9 @@ type Points struct {
 	SmallTaskId string   `bson:"small_task_id" json:"small_task_id" binding:"required"`
 	User        string   `bson:"user" json:"user" binding:"required"`
 	Points      []*Point `binding:"required" bson:"points" json:"points"`
+	Sys         string   `bson:"sys" json:"sys" binding:"required"`
+	CreatedAt   string   `bson:"created_at" json:"created_at" binding:"required"`
+	FinishedAt  string   `bson:"finished_at" json:"finished_at" binding:"required"`
 }
 
 type Point struct {

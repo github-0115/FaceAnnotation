@@ -12,7 +12,7 @@ var (
 	ErrUserNameExist      = &Err{103, "user name exist err"}
 	ErrUserIdExist        = &Err{104, "user id exist err"}
 	ErrUserSave           = &Err{105, "user save err"}
-	ErrLoginParams        = &Err{106, "user login params err"}
+	ErrLoginParams        = &Err{106, "user  params err"}
 	ErrLogin              = &Err{107, "user login err"}
 	ErrNeedToken          = &Err{301, "need auth token"}
 	ErrInvalidToken       = &Err{301, "invalid token"}

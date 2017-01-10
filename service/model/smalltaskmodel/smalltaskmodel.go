@@ -74,7 +74,29 @@ func QueryNotSmallTask() ([]*SmallTaskModel, error) {
 	var results []*SmallTaskModel
 	err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
 		"status": bson.M{"$ne": TaskStatus.Success},
-	}).All(&results)
+	}).Sort("areas").All(&results)
+
+	if err != nil {
+		log.Error(fmt.Sprintf("find small_task err ", err))
+		if err == mgo.ErrNotFound {
+			return nil, ErrSmallTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return nil, ErrSmallTaskModelCursor
+		}
+		return nil, err
+	}
+	return results, nil
+}
+
+func QueryNorNotSmallTask() ([]*SmallTaskModel, error) {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	var results []*SmallTaskModel
+	err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
+		"areas":  bson.M{"$ne": "fineTune"},
+		"status": bson.M{"$ne": TaskStatus.Success},
+	}).Sort("areas").All(&results)
 
 	if err != nil {
 		log.Error(fmt.Sprintf("find small_task err ", err))
@@ -96,7 +118,7 @@ func QueryAreaNotSmallTask(area string) ([]*SmallTaskModel, error) {
 	err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
 		"areas":  area,
 		"status": bson.M{"$ne": TaskStatus.Success},
-	}).All(&results)
+	}).Sort("areas").All(&results)
 
 	if err != nil {
 		log.Error(fmt.Sprintf("find small_task err ", err))
@@ -117,7 +139,7 @@ func QuerySmallTasks(status int64) ([]*SmallTaskModel, error) {
 	var results []*SmallTaskModel
 	err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
 		"status": status,
-	}).All(&results)
+	}).Sort("areas").All(&results)
 
 	if err != nil {
 		log.Error(fmt.Sprintf("find small task err ", err))
@@ -131,6 +153,56 @@ func QuerySmallTasks(status int64) ([]*SmallTaskModel, error) {
 	return results, nil
 }
 
+func QueryPageNotSmallTask(pageIndex int, pageSize int) ([]*SmallTaskModel, int, error) {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	var results []*SmallTaskModel
+	err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
+		"status": bson.M{"$ne": TaskStatus.Success},
+	}).Sort("areas").Skip((pageIndex - 1) * pageSize).Limit(pageSize).All(&results)
+
+	count, err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
+		"status": bson.M{"$ne": TaskStatus.Success},
+	}).Count()
+
+	if err != nil {
+		log.Error(fmt.Sprintf("find small_task err ", err))
+		if err == mgo.ErrNotFound {
+			return nil, 0, ErrSmallTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return nil, 0, ErrSmallTaskModelCursor
+		}
+		return nil, 0, err
+	}
+	return results, count, nil
+}
+
+func QueryPageSmallTasks(status int64, pageIndex int, pageSize int) ([]*SmallTaskModel, int, error) {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	var results []*SmallTaskModel
+	err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
+		"status": status,
+	}).Sort("areas").Skip((pageIndex - 1) * pageSize).Limit(pageSize).All(&results)
+
+	count, err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
+		"status": status,
+	}).Count()
+
+	if err != nil {
+		log.Error(fmt.Sprintf("find small task err ", err))
+		if err == mgo.ErrNotFound {
+			return nil, 0, ErrSmallTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return nil, 0, ErrSmallTaskModelCursor
+		}
+		return nil, 0, err
+	}
+	return results, count, nil
+}
+
 func QueryTaskSmallTasks(taskId string) ([]*SmallTaskModel, error) {
 	s := db.Face.GetSession()
 	defer s.Close()
@@ -139,7 +211,7 @@ func QueryTaskSmallTasks(taskId string) ([]*SmallTaskModel, error) {
 	err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
 		"task_id": taskId,
 		"status":  bson.M{"$ne": TaskStatus.Success},
-	}).All(&results)
+	}).Sort("areas").All(&results)
 
 	if err != nil {
 		log.Error(fmt.Sprintf("find small task err ", err))

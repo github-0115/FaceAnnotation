@@ -15,12 +15,21 @@ type UserColl struct {
 	UserId    string    `bson:"user_id" binding:"required"`
 	Username  string    `binding:"required" bson:"username" json:"username"`
 	Password  string    `binding:"required" bson:"password" json:"password"`
+	Identity  string    `binding:"required" bson:"identity" json:"identity"` //admin、fineTune、normal
+	Status    int64     `binding:"required" bson:"status" json:"status"`
 	CreatedAt time.Time `bson:"created_at" binding:"required" json:"created_at"`
+}
+
+type userIdentity struct {
+	Admin    string
+	Normal   string
+	FineTune string
 }
 
 var (
 	ErrUserNotFound = errors.New("user not found")
 	ErrUserCursor   = errors.New("Cursor err")
+	UserIdentity    = &userIdentity{"admin", "normal", "fineTune"}
 )
 
 func (u *UserColl) Save() error {
