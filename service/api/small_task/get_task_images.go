@@ -17,11 +17,17 @@ import (
 
 type ImageRep struct {
 	TaskId      []string             `json:"task_id"`
-	Md5         string               `json:"md5"`
 	SmallTaskId string               `json:"small_task_id"`
+	Md5         string               `json:"md5"`
+	Area        string               `json:"area"`
+	PointType   string               `json:"point_type"`
 	Result      []*imagemodel.Points `json:"rep"`
 	ThrResult   *imageend.PointsRep  `json:"thr_rep"`
 }
+
+var (
+	imageDomain = "http://faceannotation.oss-cn-hangzhou.aliyuncs.com/"
+)
 
 func GetSmallTaskImages(c *gin.Context) {
 	name, _ := c.Get("username")
@@ -69,13 +75,22 @@ func GetSmallTaskImages(c *gin.Context) {
 	}
 
 	images := getCompleteImages(imageList, smallTaskModel.Areas, stId, smallTaskModel.PointType)
+	var results []*imagemodel.ImageModel
+	if len(images) < pageIndex*pageSize && len(images) > (pageIndex-1)*pageSize {
+		results = images[(pageIndex-1)*pageSize : len(images)]
+	} else if len(images) > pageIndex*pageSize {
+		results = images[(pageIndex-1)*pageSize : pageIndex*pageSize]
+	}
+
 	rep := make([]*ImageRep, 0, 0)
-	for _, image := range images {
-		thr_Res := imageend.SwitchPoint(image)
+	for _, image := range results {
+		thr_Res := imageend.SwitchPoint(smallTaskModel.PointType, image)
 		imRep := &ImageRep{
 			TaskId:      image.TaskId,
-			Md5:         image.Md5,
 			SmallTaskId: stId,
+			Area:        smallTaskModel.Areas,
+			Md5:         imageDomain + image.Md5,
+			PointType:   strconv.Itoa(int(smallTaskModel.PointType)),
 			Result:      image.Results[strconv.Itoa(int(smallTaskModel.PointType))][smallTaskModel.Areas],
 			ThrResult:   thr_Res,
 		}
@@ -85,11 +100,12 @@ func GetSmallTaskImages(c *gin.Context) {
 	total := int(math.Ceil(float64(len(smallTaskModel.SmallTaskImages)) / float64(pageSize)))
 
 	c.JSON(200, gin.H{
-		"code":    0,
-		"res":     rep,
-		"page":    pageIndex,
-		"total":   total,
-		"records": len(smallTaskModel.SmallTaskImages),
+		"code":     0,
+		"res":      rep,
+		"complete": len(images),
+		"page":     pageIndex,
+		"total":    total,
+		"records":  len(smallTaskModel.SmallTaskImages),
 	})
 }
 
@@ -105,6 +121,7 @@ func getCompleteImages(imageList []*imagemodel.ImageModel, area string, stmId st
 		for _, res := range result {
 			if strings.EqualFold(res.SmallTaskId, stmId) {
 				list = append(list, image)
+				break
 			}
 		}
 

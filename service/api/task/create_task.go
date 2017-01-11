@@ -12,13 +12,12 @@ import (
 )
 
 type TaskParmars struct {
-	//	Title     string `json:"title"`
-	Count     int64    `json:"count"`
-	Area      []string `json:"area"`
-	PointType int64    `json:"point_type"`
-	MinUnit   int64    `json:"min_unit"`
-	LimitUser int64    `json:"limit_user"`
-	Introduce string   `json:"introduce"` //本次说明
+	Count int64 `json:"count"`
+	//	Area      []string `json:"area"`
+	PointType int64  `json:"point_type"`
+	MinUnit   int64  `json:"min_unit"`
+	LimitUser int64  `json:"limit_user"`
+	Introduce string `json:"introduce"` //本次说明
 }
 
 func CreateTask(c *gin.Context) {
@@ -33,7 +32,7 @@ func CreateTask(c *gin.Context) {
 		return
 	}
 	count := taskParmars.Count
-	area := taskParmars.Area
+	//	area := taskParmars.Area
 	minUnit := taskParmars.MinUnit
 	pointType := taskParmars.PointType
 	limitUser := taskParmars.LimitUser
@@ -52,9 +51,25 @@ func CreateTask(c *gin.Context) {
 		}
 	}
 
+	var areas []string
+	switch pointType {
+	case 5:
+		areas = []string{"leftEye", "rightEye", "mouth", "nouse"}
+	case 27:
+		areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "mouth", "nouse", "face"}
+	case 68:
+		areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "mouth", "nouse", "face"}
+	case 83:
+		areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "mouth", "nouse", "face"}
+	case 95:
+		areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "leftEar", "rightEar", "mouth", "nouse", "face"}
+	default:
+		areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "leftEar", "rightEar", "mouth", "nouse", "face"}
+	}
+
 	taskColl = &taskmodel.TaskModel{
 		TaskId:    taskId,
-		Area:      area,
+		Area:      areas,
 		MinUnit:   minUnit,
 		PointType: pointType,
 		LimitUser: limitUser,

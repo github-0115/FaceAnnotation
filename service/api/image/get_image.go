@@ -57,7 +57,7 @@ func GetImage(c *gin.Context) {
 
 		imageModel, err = getTimeOutFineImage(username, smallTaskId, smallTaskModel.PointType)
 		if imageModel != nil {
-			pRep = fineTuneSwitchPoint(strconv.Itoa(int(smallTaskModel.PointType)), imageModel)
+			pRep = fineTuneSwitchPoint(smallTaskModel.PointType, imageModel)
 			rep := &ImageRep{
 				SmallTaskId: smallTaskId,
 				Md5:         imageModel.Md5,
@@ -110,7 +110,7 @@ func GetImage(c *gin.Context) {
 			}
 			if timeOutModels == nil {
 				imageModel = image
-				pRep = fineTuneSwitchPoint(strconv.Itoa(int(smallTaskModel.PointType)), imageModel)
+				pRep = fineTuneSwitchPoint(smallTaskModel.PointType, imageModel)
 				break
 			}
 			var flag bool = false
@@ -136,7 +136,7 @@ func GetImage(c *gin.Context) {
 			}
 
 			imageModel = image
-			pRep = fineTuneSwitchPoint(strconv.Itoa(int(smallTaskModel.PointType)), imageModel)
+			pRep = fineTuneSwitchPoint(smallTaskModel.PointType, imageModel)
 			break
 		}
 
@@ -145,7 +145,7 @@ func GetImage(c *gin.Context) {
 		imageModel, err = getTimeOutImage(username, smallTaskId, smallTaskModel.Areas, smallTaskModel.PointType)
 
 		if imageModel != nil {
-			pRep = SwitchPoint(imageModel)
+			pRep = SwitchPoint(smallTaskModel.PointType, imageModel)
 			rep := &ImageRep{
 				SmallTaskId: smallTaskId,
 				Md5:         imageModel.Md5,
@@ -198,7 +198,7 @@ func GetImage(c *gin.Context) {
 			}
 			if timeOutModels == nil {
 				imageModel = image
-				pRep = SwitchPoint(imageModel)
+				pRep = SwitchPoint(smallTaskModel.PointType, imageModel)
 				break
 			}
 			var flag bool = false
@@ -224,7 +224,7 @@ func GetImage(c *gin.Context) {
 			}
 
 			imageModel = image
-			pRep = SwitchPoint(imageModel)
+			pRep = SwitchPoint(smallTaskModel.PointType, imageModel)
 			break
 		}
 	}

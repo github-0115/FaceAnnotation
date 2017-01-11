@@ -96,7 +96,12 @@ func SaveImageRes(c *gin.Context) {
 			}
 		}
 		if timeOutImages != nil && len(timeOutImages) != 0 {
-			fineRes.CreatedAt = timeOutImages[0].CreatedAt.Format("2006-01-02 03:04:05")
+			if timeOutImages == nil || len(timeOutImages) == 0 {
+				fineRes.CreatedAt = time.Now().Add(-10 * time.Minute).Format("2006-01-02 03:04:05")
+			} else {
+				fineRes.CreatedAt = timeOutImages[0].CreatedAt.Format("2006-01-02 03:04:05")
+			}
+
 		} else {
 			fineRes.CreatedAt = time.Now().Add(-10 * time.Minute).Format("2006-01-02 03:04:05")
 		}
@@ -153,7 +158,12 @@ func SaveImageRes(c *gin.Context) {
 		}
 	}
 	if points != nil && len(points.Points) != 0 {
-		points.CreatedAt = timeOutImages[0].CreatedAt.Format("2006-01-02 03:04:05")
+		if timeOutImages == nil || len(timeOutImages) == 0 {
+			points.CreatedAt = time.Now().Add(-10 * time.Minute).Format("2006-01-02 03:04:05")
+		} else {
+			points.CreatedAt = timeOutImages[0].CreatedAt.Format("2006-01-02 03:04:05")
+		}
+
 	} else {
 		points.CreatedAt = time.Now().Add(-10 * time.Minute).Format("2006-01-02 03:04:05")
 	}
