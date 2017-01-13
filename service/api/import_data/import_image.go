@@ -72,6 +72,7 @@ func ImportImage(c *gin.Context) {
 			TaskId:    []string{taskId},
 			Md5:       photoName,
 			Url:       imageFileHeader.Filename,
+			ThrFaces:  make(map[string]map[string]interface{}),
 			CreatedAt: time.Now(),
 		}
 
@@ -90,26 +91,28 @@ func ImportImage(c *gin.Context) {
 		if err != nil {
 			log.Error(fmt.Sprintf("get face++ five res fail err:%s", err))
 		}
-		thrRes, err = thrfacemodel.EightThreeFace(five.Face[0].FaceId)
-		if err != nil {
-			log.Error(fmt.Sprintf("get face++ 83 res fail err:%s", err))
-		}
-		thrRes.Result[0].FaceHeight = five.Face[0].Position.Height
-		thrRes.Result[0].FaceWidth = five.Face[0].Position.Width
-		thrRes.Result[0].ImageWidth = five.ImgWidth
-		thrRes.Result[0].ImageHeight = five.ImgHeight
-		res1B, _ := json.Marshal(thrRes)
+		if five.Face[0] != nil {
+			thrRes, err = thrfacemodel.EightThreeFace(five.Face[0].FaceId)
+			if err != nil {
+				log.Error(fmt.Sprintf("get face++ 83 res fail err:%s", err))
+			}
+			thrRes.Result[0].FaceHeight = five.Face[0].Position.Height
+			thrRes.Result[0].FaceWidth = five.Face[0].Position.Width
+			thrRes.Result[0].ImageWidth = five.ImgWidth
+			thrRes.Result[0].ImageHeight = five.ImgHeight
+			res1B, _ := json.Marshal(thrRes)
 
-		var result interface{}
-		if err := json.Unmarshal(res1B, &result); err != nil {
-			fmt.Println("json unmarshal err=%s", err)
-		}
-		fmt.Println("-----result%s-----", result)
-		if imageColl.ThrFaces == nil {
+			var result interface{}
+			if err := json.Unmarshal(res1B, &result); err != nil {
+				fmt.Println("json unmarshal err=%s", err)
+			}
+			fmt.Println("-----result%s-----", result)
+			if imageColl.ThrFaces == nil {
+				imageColl.ThrFaces["face++"] = make(map[string]interface{})
+			}
 			imageColl.ThrFaces["face++"] = make(map[string]interface{})
+			imageColl.ThrFaces["face++"]["83"] = result
 		}
-		imageColl.ThrFaces["face++"] = make(map[string]interface{})
-		imageColl.ThrFaces["face++"]["83"] = result
 	}
 
 	_, err = imagemodel.UpsertImageModel(imageColl)

@@ -62,17 +62,13 @@ func TaskList(c *gin.Context) {
 	}
 
 	taskList := make([]*TaskRep, 0, 0)
-	taskRep := &TaskRep{
-		Key:  0,
-		Mark: "one",
-	}
 
 	tasks, records, err := taskmodel.QueryPageTasks(pageIndex, pageSize)
 	if err != nil {
 		log.Error(fmt.Sprintf("query small task err %s", err))
 		c.JSON(400, gin.H{
-			"code":    vars.ErrSmallTaskNotFound.Code,
-			"message": vars.ErrSmallTaskNotFound.Msg,
+			"code":    vars.ErrTaskListNotFound.Code,
+			"message": vars.ErrTaskListNotFound.Msg,
 		})
 		return
 	}
@@ -87,13 +83,33 @@ func TaskList(c *gin.Context) {
 		})
 		return
 	}
-	taskRep.Description = tasks[0].CreatedAt.Format("2006-01-02 03:04:05") + "导入数据"
-	taskRep.TaskId = tasks[0].TaskId
-	taskRep.Status = tasks[0].Status
-	taskRep.Situation = tasks[0].Count
-	taskRep.CreatedAt = tasks[0].CreatedAt.Format("2006-01-02 03:04:05")
+	//	taskRep := &TaskRep{
+	//		Key:  0,
+	//		Mark: "one",
+	//	}
+	//	taskRep.Description = tasks[0].CreatedAt.Format("2006-01-02 03:04:05") + "导入数据"
+	//	taskRep.TaskId = tasks[0].TaskId
+	//	taskRep.Status = tasks[0].Status
+	//	taskRep.Situation = tasks[0].Count
+	//	taskRep.CreatedAt = tasks[0].CreatedAt.Format("2006-01-02 03:04:05")
 	var key int64 = 1
 	for i := 0; i < len(tasks); i++ {
+		key += 1
+		taskRep := &TaskRep{
+			Key:         key,
+			Mark:        "one",
+			TaskId:      tasks[i].TaskId,
+			Situation:   tasks[i].Count,
+			Description: strconv.Itoa(int(tasks[i].PointType)),
+			Status:      tasks[i].Status,
+			CreatedAt:   tasks[i].CreatedAt.Format("2006-01-02 03:04:05"),
+		}
+		//		taskRep.Description = tasks[0].CreatedAt.Format("2006-01-02 03:04:05") + "导入数据"
+		//		taskRep.TaskId = tasks[0].TaskId
+		//		taskRep.Status = tasks[0].Status
+		//		taskRep.Situation = tasks[0].Count
+		//		taskRep.CreatedAt = tasks[0].CreatedAt.Format("2006-01-02 03:04:05")
+
 		key += 1
 		twoChildren := &TwoChildren{
 			Key:         key,
@@ -141,8 +157,9 @@ func TaskList(c *gin.Context) {
 		}
 
 		taskRep.Children = append(taskRep.Children, twoChildren)
+		taskList = append(taskList, taskRep)
 	}
-	taskList = append(taskList, taskRep)
+
 	total := int(math.Ceil(float64(records) / float64(pageSize)))
 
 	c.JSON(200, gin.H{

@@ -26,6 +26,13 @@ type Points struct {
 	Points []float64 `json:"95"`
 }
 
+type ThrResRep struct {
+	WidthScale  float64             `json:"width_scale"`
+	HeightScale float64             `json:"height_scale"`
+	Name        string              `json:"name"`
+	Points      []*imagemodel.Point `json:"points"`
+}
+
 func SwitchPoint(pointType int64, image *imagemodel.ImageModel) *PointsRep {
 	log.Info(fmt.Sprintf("image = %s switch point", image.Md5))
 	switch pointType {
@@ -209,7 +216,7 @@ func faceResSwitchPoint(pointType int64, image *imagemodel.ImageModel) *PointsRe
 			&imagemodel.Point{X: landmark["right_eyebrow_lower_left_quarter"].X * width, Y: landmark["right_eyebrow_lower_left_quarter"].Y * height},
 		},
 		LeftEye: []*imagemodel.Point{
-			&imagemodel.Point{X: landmark["left_eye_center"].X * width, Y: landmark["left_eye_center"].Y * height},
+			&imagemodel.Point{X: landmark["left_eye_pupil"].X * width, Y: landmark["left_eye_pupil"].Y * height},
 			&imagemodel.Point{X: landmark["left_eye_left_corner"].X * width, Y: landmark["left_eye_left_corner"].Y * height},
 			&imagemodel.Point{X: landmark["left_eye_top"].X * width, Y: landmark["left_eye_top"].Y * height},
 			&imagemodel.Point{X: landmark["left_eye_right_corner"].X * width, Y: landmark["left_eye_right_corner"].Y * height},
@@ -302,6 +309,93 @@ func faceResSwitchPoint(pointType int64, image *imagemodel.ImageModel) *PointsRe
 	return pRep
 }
 
+func ThrResults(pointType int64, image *imagemodel.ImageModel) []*ThrResRep {
+	log.Info(fmt.Sprintf("image = %s switch face++ point", image.Md5))
+	resultPoints := make([]*ThrResRep, 0, 0)
+	if image.ThrFaces == nil {
+		log.Info(fmt.Sprintf("image = %s thr point==nil ", image.Md5))
+		return resultPoints
+	}
+
+	if image.ThrFaces["face++"]["83"] != nil {
+		log.Info(fmt.Sprintf("image = %s thr point ", image.Md5))
+		res1B, _ := json.Marshal(image.ThrFaces["face++"]["83"])
+		//		fmt.Println(string(res1B)) //json
+
+		faceRes := &thrfacemodel.EightThreeFaceModel{}
+		if err := json.Unmarshal([]byte(string(res1B)), &faceRes); err == nil {
+			//			fmt.Println("---faceRes%s----", faceRes) //json
+			landmark := faceRes.Result[0].Landmark
+			if landmark != nil {
+				height := faceRes.Result[0].ImageHeight / 100
+				width := faceRes.Result[0].ImageWidth / 100
+
+				points := make([]*imagemodel.Point, 0, 0)
+				var p *imagemodel.Point
+				for _, point := range faceRes.Result[0].Landmark {
+					if point != nil {
+						p = &imagemodel.Point{
+							X: point.X * width,
+							Y: point.Y * height,
+						}
+						points = append(points, p)
+					}
+				}
+				//				if len(points) >= 83 {
+				thrResRep := &ThrResRep{
+					HeightScale: height,
+					WidthScale:  width,
+					Name:        "face++",
+					Points:      points,
+				}
+
+				resultPoints = append(resultPoints, thrResRep)
+			} else {
+				log.Info(fmt.Sprintf("landmark==nil "))
+			}
+		} else {
+			log.Info(fmt.Sprintf("face++json unmarshalerr "))
+		}
+		//
+	}
+
+	if image.ThrFaces["deepir_import"] != nil {
+		res1B, _ := json.Marshal(image.ThrFaces["deepir_import"][strconv.Itoa(int(pointType))])
+
+		imPoints := new(Points)
+		if err := json.Unmarshal(res1B, &imPoints.Points); err == nil {
+			points := make([]*imagemodel.Point, 0, 0)
+			var p *imagemodel.Point
+			for i := 0; i < len(imPoints.Points); i++ {
+				if i%2 == 0 {
+					x := imPoints.Points[i]
+					p = &imagemodel.Point{
+						X: x,
+					}
+				}
+				if i%2 == 1 {
+					y := imPoints.Points[i]
+					p.Y = y
+					points = append(points, p)
+				}
+			}
+
+			thrResRep := &ThrResRep{
+				HeightScale: 1,
+				WidthScale:  1,
+				Name:        "import",
+				Points:      points,
+			}
+
+			resultPoints = append(resultPoints, thrResRep)
+		} else {
+			log.Info(fmt.Sprintf("import res json unmarshal err"))
+		}
+	}
+
+	return resultPoints
+}
+
 func fineTuneSwitchPoint(pointType int64, image *imagemodel.ImageModel) *PointsRep {
 	log.Info(fmt.Sprintf("image fineTune = %s switch point", image.Md5))
 	if image.Results[strconv.Itoa(int(pointType))] == nil {
@@ -336,6 +430,7 @@ func fineTuneSwitchPoint(pointType int64, image *imagemodel.ImageModel) *PointsR
 			}
 		}
 	}
+	fmt.Println(pRep)
 	return pRep
 }
 

@@ -67,6 +67,28 @@ func QuerySmallTask(id string) (*SmallTaskModel, error) {
 	return coll, nil
 }
 
+func QueryfineTuneTask(id string, area string) (*SmallTaskModel, error) {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	coll := new(SmallTaskModel)
+	err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
+		"task_id": id,
+		"areas":   area,
+	}).One(coll)
+
+	if err != nil {
+		log.Error(fmt.Sprintf("find small task err ", err))
+		if err == mgo.ErrNotFound {
+			return nil, ErrSmallTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return nil, ErrSmallTaskModelCursor
+		}
+		return nil, err
+	}
+	return coll, nil
+}
+
 func QueryNotSmallTask() ([]*SmallTaskModel, error) {
 	s := db.Face.GetSession()
 	defer s.Close()

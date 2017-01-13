@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gin-gonic/contrib/gzip"
 	"github.com/gin-gonic/gin"
 	log "github.com/inconshreveable/log15"
 	"github.com/itsjamie/gin-cors"
@@ -36,6 +37,7 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
+	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	r.Use(cors.Middleware(cors.Config{
 		Origins:         "*",
 		Methods:         "POST",
@@ -68,6 +70,7 @@ func main() {
 	{
 		taskgroup.POST("create_task", taskendpoint.CreateTask)
 		taskgroup.GET("task_list", taskendpoint.TaskList)
+		taskgroup.GET("task_image_list", taskendpoint.GetTaskImages)
 		taskgroup.POST("create_small_task", smalltaskendpoint.CreateSmallTask)
 		taskgroup.GET("get_small_tasks", smalltaskendpoint.GetSmallTasks)
 		taskgroup.GET("small_task_list", smalltaskendpoint.SmallTaskList)
