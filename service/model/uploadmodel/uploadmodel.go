@@ -146,9 +146,9 @@ func ossWorker(bucket *oss.Bucket, taskid string, points map[string][]interface{
 		}
 
 		if imageColl.ThrFaces == nil {
-			imageColl.ThrFaces = make(map[string][]interface{})
+			imageColl.ThrFaces = make(map[string]map[string]interface{})
 		}
-		imageColl.ThrFaces["deepir_import"] = points[names[len(names)-1]]
+		imageColl.ThrFaces["deepir_import"]["95"] = points[names[len(names)-1]]
 
 		_, err = imagemodel.UpsertImageModel(imageColl)
 		if err != nil {

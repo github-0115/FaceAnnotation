@@ -41,10 +41,10 @@ func ImportResult(c *gin.Context) {
 
 	for _, image := range imageList {
 		if image.ThrFaces["deepir_import"] == nil {
-			image.ThrFaces["deepir_import"] = []interface{}{}
+			image.ThrFaces["deepir_import"] = map[string]interface{}{}
 		}
-		//		image.ThrFaces["deepir_import"] = append(image.ThrFaces["deepir_import"], []interface{}{importPoints[image.Url]})
-		image.ThrFaces["deepir_import"] = importPoints[image.Url]
+
+		image.ThrFaces["deepir_import"]["95"] = importPoints[image.Url]
 		//		fmt.Println(importPoints[image.Url])
 		_, err = imagemodel.UpsertImageModel(image)
 		if err != nil {

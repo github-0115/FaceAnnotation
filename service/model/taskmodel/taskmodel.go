@@ -92,6 +92,27 @@ func QueryTaskList(status int64) ([]*TaskModel, error) {
 	return result, nil
 }
 
+func QueryPageTasks(pageIndex int, pageSize int) ([]*TaskModel, int, error) {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	var results []*TaskModel
+	err := s.DB(db.Face.DB).C("task").Find(nil).Sort("created_at").Skip((pageIndex - 1) * pageSize).Limit(pageSize).All(&results)
+
+	count, err := s.DB(db.Face.DB).C("task").Find(nil).Count()
+
+	if err != nil {
+		log.Error(fmt.Sprintf("find task err ", err))
+		if err == mgo.ErrNotFound {
+			return nil, 0, ErrTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return nil, 0, ErrTaskModelCursor
+		}
+		return nil, 0, err
+	}
+	return results, count, nil
+}
+
 func UpdateTaskStatus(taskId string, status int64) error {
 
 	s := db.Face.GetSession()

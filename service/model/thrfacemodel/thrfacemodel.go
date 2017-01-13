@@ -4,6 +4,7 @@ import (
 	cfg "FaceAnnotation/config"
 	"bytes"
 	"encoding/json"
+
 	//	"errors"
 	"fmt"
 	"io"
@@ -12,7 +13,6 @@ import (
 	"net/http"
 	"path/filepath"
 
-	//	"github.com/gin-gonic/gin"
 	log "github.com/inconshreveable/log15"
 )
 
@@ -27,8 +27,8 @@ var (
 type ThrFaceModel struct {
 	ImgId     string       `json:"img_id"`
 	SessionId string       `json:"session_id"`
-	ImgHeight int64        `json:"img_height"`
-	ImgWidth  int64        `json:"img_width"`
+	ImgHeight float64      `json:"img_height"`
+	ImgWidth  float64      `json:"img_width"`
 	Face      []*FaceModel `json:"face"`
 }
 
@@ -46,8 +46,8 @@ type Attribute struct {
 }
 
 type Age struct {
-	Range float32 `json:"range"`
-	Value float32 `json:"value"`
+	Range float64 `json:"range"`
+	Value float64 `json:"value"`
 }
 
 type Gender struct {
@@ -71,13 +71,13 @@ type Position struct {
 	MouthLeft  *Point  `json:"mouth_left"`
 	MouthRight *Point  `json:"mouth_right"`
 	Nose       *Point  `json:"nose"`
-	Height     float32 `json:"height"`
-	Width      float32 `json:"width"`
+	Height     float64 `json:"height"`
+	Width      float64 `json:"width"`
 }
 
 type Point struct {
-	X float32 `json:"x"`
-	Y float32 `json:"y"`
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
 }
 
 func ThrFaceFileRes(fileName string, fileBytes []byte) (*ThrFaceModel, error) {

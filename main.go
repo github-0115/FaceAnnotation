@@ -67,6 +67,7 @@ func main() {
 	taskgroup.Use(middleware.AuthToken)
 	{
 		taskgroup.POST("create_task", taskendpoint.CreateTask)
+		taskgroup.GET("task_list", taskendpoint.TaskList)
 		taskgroup.POST("create_small_task", smalltaskendpoint.CreateSmallTask)
 		taskgroup.GET("get_small_tasks", smalltaskendpoint.GetSmallTasks)
 		taskgroup.GET("small_task_list", smalltaskendpoint.SmallTaskList)

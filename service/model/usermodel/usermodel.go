@@ -29,7 +29,11 @@ type userIdentity struct {
 var (
 	ErrUserNotFound = errors.New("user not found")
 	ErrUserCursor   = errors.New("Cursor err")
-	UserIdentity    = &userIdentity{"admin", "normal", "fineTune"}
+	UserIdentity    = &userIdentity{
+		Admin:    "admin",
+		Normal:   "normal",
+		FineTune: "fineTune",
+	}
 )
 
 func (u *UserColl) Save() error {

@@ -22,8 +22,12 @@ type EightThreeFaceModel struct {
 }
 
 type Result struct {
-	FaceId   string            `json:"face_id"`
-	Landmark map[string]*Point `json:"Landmark"`
+	FaceId      string            `json:"face_id"`
+	ImageWidth  float64           `json:"image_width"`
+	ImageHeight float64           `json:"image_height"`
+	FaceWidth   float64           `json:"face_width"`
+	FaceHeight  float64           `json:"face_height"`
+	Landmark    map[string]*Point `json:"Landmark"`
 }
 
 func EightThreeFace(face_id string) (*EightThreeFaceModel, error) {
