@@ -39,6 +39,6 @@ var (
 	ErrReadImage          = &Err{706, "read image error"}
 	ErrNotImage           = &Err{707, "Under the task gets no pictures error"}
 	ErrSmallTaskSave      = &Err{800, "create small task save err"}
-	ErrSmallTaskNotFound  = &Err{801, "create small task not found err"}
+	ErrSmallTaskNotFound  = &Err{801, "small task not found err"}
 	ErrNotSmallTask       = &Err{802, "not small task err"}
 )

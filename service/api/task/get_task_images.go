@@ -87,7 +87,7 @@ func GetTaskImages(c *gin.Context) {
 		return
 	}
 
-	images := getFineCompleteImages(taskImages, smallTask.TaskId, task.PointType)
+	images := GetFineCompleteImages(taskImages, smallTask.TaskId, task.PointType)
 
 	var results []*imagemodel.ImageModel
 	if len(images) < pageIndex*pageSize && len(images) > (pageIndex-1)*pageSize {
@@ -160,7 +160,7 @@ func switchPoints(image *imagemodel.ImageModel, pointType int64) []*imagemodel.P
 	return fineRes
 }
 
-func getFineCompleteImages(imageList []*imagemodel.ImageModel, stmId string, pointType int64) []*imagemodel.ImageModel {
+func GetFineCompleteImages(imageList []*imagemodel.ImageModel, stmId string, pointType int64) []*imagemodel.ImageModel {
 	list := make([]*imagemodel.ImageModel, 0, 0)
 	for _, image := range imageList {
 		result := image.FineResults[strconv.Itoa(int(pointType))]

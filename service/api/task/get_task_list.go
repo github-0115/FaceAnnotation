@@ -145,7 +145,7 @@ func TaskList(c *gin.Context) {
 				Key:         key,
 				Mark:        "three",
 				LimitCount:  smallTasks[j].LimitCount,
-				TaskId:      smallTasks[j].TaskId,
+				TaskId:      smallTasks[j].SmallTaskId,
 				Situation:   int64(len(smallTasks[j].SmallTaskImages)),
 				Area:        smallTasks[j].Areas,
 				Description: strconv.Itoa(int(smallTasks[j].PointType)) + smallTasks[j].Areas,
