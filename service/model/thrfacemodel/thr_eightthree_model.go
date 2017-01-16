@@ -1,7 +1,6 @@
 package thrfacemodel
 
 import (
-	cfg "FaceAnnotation/config"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -13,7 +12,7 @@ import (
 )
 
 var (
-	landUrl = cfg.Cfg.FaceLandmarkUrl
+	landUrl = "http://apicn.faceplusplus.com/v2/detection/landmark"
 )
 
 type EightThreeFaceModel struct {

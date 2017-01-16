@@ -134,6 +134,27 @@ func QueryTaskImages(taskId string) ([]*ImageModel, error) {
 	return results, nil
 }
 
+func QueryPageTaskImages(taskId string, pageIndex int, pageSize int) ([]*ImageModel, error) {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	var results []*ImageModel
+	err := s.DB(db.Face.DB).C("image").Find(bson.M{
+		"task_id": taskId,
+	}).Skip((pageIndex - 1) * pageSize).Limit(pageSize).All(&results)
+
+	if err != nil {
+		log.Error(fmt.Sprintf("find image err ", err))
+		if err == mgo.ErrNotFound {
+			return nil, ErrImageModelNotFound
+		} else if err == mgo.ErrCursor {
+			return nil, ErrImageModelCursor
+		}
+		return nil, err
+	}
+	return results, nil
+}
+
 func UpdateImageModel(md5 string, taskId string) error {
 	s := db.Face.GetSession()
 	defer s.Close()

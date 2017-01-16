@@ -1,8 +1,9 @@
 package export_data
 
 import (
+	exportmodel "FaceAnnotation/service/model/exportmodel"
 	imagemodel "FaceAnnotation/service/model/imagemodel"
-	smalltaskmodel "FaceAnnotation/service/model/smalltaskmodel"
+	//	smalltaskmodel "FaceAnnotation/service/model/smalltaskmodel"
 	taskmodel "FaceAnnotation/service/model/taskmodel"
 	vars "FaceAnnotation/service/vars"
 	"fmt"
@@ -31,7 +32,7 @@ func ExportData(c *gin.Context) {
 		return
 	}
 
-	taskImages, err := imagemodel.QueryTaskImages(taskId)
+	taskImages, err := imagemodel.QueryTaskImages(task.TaskId)
 	if err != nil {
 		log.Error(fmt.Sprintf("query small task err %s", err))
 		c.JSON(400, gin.H{
@@ -41,21 +42,24 @@ func ExportData(c *gin.Context) {
 		return
 	}
 
-	smallTask, err := smalltaskmodel.QuerySmallTask(task.TaskId)
-	if err != nil {
-		log.Error(fmt.Sprintf("query small task err %s", err))
-		c.JSON(400, gin.H{
-			"code":    vars.ErrSmallTaskNotFound.Code,
-			"message": vars.ErrSmallTaskNotFound.Msg,
-		})
-		return
-	}
+	//	smallTask, err := smalltaskmodel.QueryfineTuneTask(task.TaskId, "fineTune")
+	//	if err != nil {
+	//		log.Error(fmt.Sprintf("query small task err %s", err))
+	//		c.JSON(400, gin.H{
+	//			"code":    vars.ErrSmallTaskNotFound.Code,
+	//			"message": vars.ErrSmallTaskNotFound.Msg,
+	//		})
+	//		return
+	//	}
 
-	images := getFineCompleteImages(taskImages, smallTask.TaskId, task.PointType)
+	//	images := getFineCompleteImages(taskImages, smallTask.TaskId, task.PointType)
 
-	for _, image := range images {
+	for _, image := range taskImages {
 		//daochu
-		fmt.Println(image.Md5)
+		fmt.Println("export start......")
+		//				exportmodel.SaveResFile(strings.Split(image.Url, ".")[0], image.FineResults[strconv.Itoa(int(smallTask.PointType))][0])
+		//		exportmodel.SaveResFile(strings.Split(image.Url, ".")[0], image.ThrFaces["face++"])
+		exportmodel.SaveResFile(strings.Split(image.Url, ".")[0], image)
 	}
 
 	c.JSON(200, gin.H{

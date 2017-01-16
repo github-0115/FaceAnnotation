@@ -83,15 +83,7 @@ func TaskList(c *gin.Context) {
 		})
 		return
 	}
-	//	taskRep := &TaskRep{
-	//		Key:  0,
-	//		Mark: "one",
-	//	}
-	//	taskRep.Description = tasks[0].CreatedAt.Format("2006-01-02 03:04:05") + "导入数据"
-	//	taskRep.TaskId = tasks[0].TaskId
-	//	taskRep.Status = tasks[0].Status
-	//	taskRep.Situation = tasks[0].Count
-	//	taskRep.CreatedAt = tasks[0].CreatedAt.Format("2006-01-02 03:04:05")
+
 	var key int64 = 1
 	for i := 0; i < len(tasks); i++ {
 		key += 1
@@ -100,15 +92,10 @@ func TaskList(c *gin.Context) {
 			Mark:        "one",
 			TaskId:      tasks[i].TaskId,
 			Situation:   tasks[i].Count,
-			Description: strconv.Itoa(int(tasks[i].PointType)),
+			Description: tasks[i].CreatedAt.Format("2006-01-02 03:04:05"),
 			Status:      tasks[i].Status,
 			CreatedAt:   tasks[i].CreatedAt.Format("2006-01-02 03:04:05"),
 		}
-		//		taskRep.Description = tasks[0].CreatedAt.Format("2006-01-02 03:04:05") + "导入数据"
-		//		taskRep.TaskId = tasks[0].TaskId
-		//		taskRep.Status = tasks[0].Status
-		//		taskRep.Situation = tasks[0].Count
-		//		taskRep.CreatedAt = tasks[0].CreatedAt.Format("2006-01-02 03:04:05")
 
 		key += 1
 		twoChildren := &TwoChildren{
@@ -125,11 +112,6 @@ func TaskList(c *gin.Context) {
 		smallTasks, err := smalltaskmodel.QueryTaskAllSmallTasks(tasks[i].TaskId)
 		if err != nil {
 			log.Error(fmt.Sprintf("query small task err %s", err))
-			//			c.JSON(400, gin.H{
-			//				"code":    vars.ErrSmallTaskNotFound.Code,
-			//				"message": vars.ErrSmallTaskNotFound.Msg,
-			//			})
-			//			return
 		}
 
 		if smallTasks == nil {

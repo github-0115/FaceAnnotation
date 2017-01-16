@@ -1,7 +1,6 @@
 package thrfacemodel
 
 import (
-	cfg "FaceAnnotation/config"
 	"bytes"
 	"encoding/json"
 
@@ -17,9 +16,11 @@ import (
 )
 
 var (
-	apiUrl     = cfg.Cfg.FaceDetectUrl
-	api_key    = cfg.Cfg.FaceApiKey
-	api_secret = cfg.Cfg.FaceApiSecret
+	apiUrl     = "http://apicn.faceplusplus.com/v2/detection/detect"
+	api_key    = "5cf0a809099330320f34ab9284e5ccf1"
+	api_secret = "gpu2oUNxDA2jWM-9hc1pInODYgqKXtMo"
+	//face_detect_url= "http://apicn.faceplusplus.com/v2/detection/detect"
+//	face_landmark_url = "http://apicn.faceplusplus.com/v2/detection/landmark"
 
 //	imageUrl   = "http://www.qq1234.org/uploads/allimg/120509/1_120509171458_7.jpg"
 )

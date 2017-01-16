@@ -17,7 +17,7 @@ import (
 )
 
 func ImportData(c *gin.Context) {
-	//
+
 	pointFile, _, err := c.Request.FormFile("point")
 	imagePath := c.PostForm("image_path")
 	//	areas := c.PostForm("areas")
@@ -118,7 +118,7 @@ func readPoint(dat []byte) map[string][]interface{} {
 				points = append(points, f)
 			}
 
-			fmt.Println(points)
+			//			fmt.Println(points)
 			m[rr[0]] = points
 		}
 	}

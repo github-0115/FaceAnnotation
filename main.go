@@ -1,6 +1,7 @@
 package main
 
 import (
+	exportendpoint "FaceAnnotation/service/api/export_data"
 	imageendpoint "FaceAnnotation/service/api/image"
 	dataendpoint "FaceAnnotation/service/api/import_data"
 	loginendpoint "FaceAnnotation/service/api/login"
@@ -50,7 +51,7 @@ func main() {
 
 	r.Static("origin_images", "./origin_images")
 	r.POST("import_data", dataendpoint.ImportData)
-	r.GET("getthr_res", dataendpoint.GetThrResult)
+	r.POST("export_data", exportendpoint.ExportData)
 	authorized := r.Group("/user")
 	{
 		authorized.POST("login", loginendpoint.Login)
@@ -62,6 +63,7 @@ func main() {
 		imagegroup.GET("get_one_image", imageendpoint.GetImage)
 		imagegroup.POST("save_image", imageendpoint.SaveImageRes)
 		imagegroup.POST("import_image", dataendpoint.ImportImage)
+		imagegroup.POST("import_images", dataendpoint.ImportImages)
 		imagegroup.POST("import_res", dataendpoint.ImportResult)
 	}
 
@@ -70,7 +72,9 @@ func main() {
 	{
 		taskgroup.POST("create_task", taskendpoint.CreateTask)
 		taskgroup.GET("task_list", taskendpoint.TaskList)
-		taskgroup.GET("task_image_list", taskendpoint.GetTaskImages)
+		taskgroup.GET("task_allimages", taskendpoint.GetTaskAllImages)
+		taskgroup.GET("task_fineimages", taskendpoint.GetTaskImages)
+		taskgroup.GET("task_images", taskendpoint.GetTaskImages)
 		taskgroup.POST("create_small_task", smalltaskendpoint.CreateSmallTask)
 		taskgroup.GET("get_small_tasks", smalltaskendpoint.GetSmallTasks)
 		taskgroup.GET("small_task_list", smalltaskendpoint.SmallTaskList)

@@ -2,11 +2,13 @@ package import_data
 
 import (
 	imagemodel "FaceAnnotation/service/model/imagemodel"
-	//	taskmodel "FaceAnnotation/service/model/taskmodel"
+	taskmodel "FaceAnnotation/service/model/taskmodel"
+	thrfacemodel "FaceAnnotation/service/model/thrfacemodel"
 	uploadmodel "FaceAnnotation/service/model/uploadmodel"
 	vars "FaceAnnotation/service/vars"
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -16,15 +18,36 @@ import (
 	log "github.com/inconshreveable/log15"
 )
 
-func ImportImage(c *gin.Context) {
+func ImportImages(c *gin.Context) {
+	taskId := c.PostForm("task_id")
 	isRes := c.PostForm("isRes")
 	resFile, _, err := c.Request.FormFile("res")
 	imageFile, imageFileHeader, err := c.Request.FormFile("image")
-	if err != nil {
+	if err != nil || taskId == "" {
 		log.Error(fmt.Sprintf("import image parmars err %s", err))
 		c.JSON(400, gin.H{
 			"code":    vars.ErrImportImageParmars.Code,
 			"message": vars.ErrImportImageParmars.Msg,
+		})
+		return
+	}
+
+	if resFile == nil && strings.EqualFold(isRes, "yes") {
+
+		log.Error(fmt.Sprintf(" res file parmars err"))
+		c.JSON(400, gin.H{
+			"code":    vars.ErrImportImageParmars.Code,
+			"message": vars.ErrImportImageParmars.Msg,
+		})
+		return
+	}
+
+	_, err = taskmodel.QueryTask(taskId)
+	if err != nil {
+		log.Error(fmt.Sprintf("query task err", err.Error()))
+		c.JSON(400, gin.H{
+			"code":    vars.ErrTaskNotFound.Code,
+			"message": vars.ErrTaskNotFound.Msg,
 		})
 		return
 	}
@@ -73,7 +96,9 @@ func ImportImage(c *gin.Context) {
 	}
 
 	if imageColl == nil {
+		fmt.Println("image = nil")
 		imageColl = &imagemodel.ImageModel{
+			TaskId:    []string{taskId},
 			Md5:       photoName,
 			Url:       imageFileHeader.Filename,
 			ThrFaces:  make(map[string]map[string]interface{}),
@@ -85,6 +110,8 @@ func ImportImage(c *gin.Context) {
 			log.Error(fmt.Sprintf("image %s upload oss err %s", imageFileHeader.Filename, err.Error()))
 		}
 
+	} else {
+		imageColl.TaskId = append(imageColl.TaskId, taskId)
 	}
 
 	if strings.EqualFold(isRes, "not") {
@@ -115,20 +142,48 @@ func ImportImage(c *gin.Context) {
 
 	c.JSON(200, gin.H{
 		"code":    0,
-		"message": "import image success",
+		"task_id": taskId,
 	})
 }
 
+func faceRes(photoName string, fileByte []byte, imageColl *imagemodel.ImageModel) (*imagemodel.ImageModel, error) {
+	//face++ res
+	//	var thrRes *thrfacemodel.FaceModelV3
+	thrRes, err := thrfacemodel.ThrFaceFileResV3(photoName, fileByte)
+	if err != nil {
+		log.Error(fmt.Sprintf("get face++ res fail err:%s", err))
+	}
+	res1B, _ := json.Marshal(thrRes)
+
+	var result interface{}
+	if err := json.Unmarshal(res1B, &result); err != nil {
+		fmt.Println("json unmarshal err=%s", err)
+	}
+	fmt.Println("-----result%s-----", result)
+	if imageColl.ThrFaces == nil {
+		imageColl.ThrFaces["face++"] = make(map[string]interface{})
+	}
+	imageColl.ThrFaces["face++"] = make(map[string]interface{})
+	imageColl.ThrFaces["face++"]["83"] = result
+
+	return imageColl, nil
+}
+
 /*
-func v2() {
-	five, _ := thrfacemodel.ThrFaceFileRes(photoName, fileByte)
+func faceRes(photoName string, fileByte []byte, imageColl *imagemodel.ImageModel) (*imagemodel.ImageModel, error) {
+	//face++ res
+	var thrRes *thrfacemodel.
+
+	five, err := thrfacemodel.ThrFaceFileRes(photoName, fileByte)
 	if err != nil {
 		log.Error(fmt.Sprintf("get face++ five res fail err:%s", err))
+		return imageColl, err
 	}
 	if five.Face[0] != nil {
 		thrRes, err = thrfacemodel.EightThreeFace(five.Face[0].FaceId)
 		if err != nil {
 			log.Error(fmt.Sprintf("get face++ 83 res fail err:%s", err))
+			return imageColl, err
 		}
 		thrRes.Result[0].FaceHeight = five.Face[0].Position.Height
 		thrRes.Result[0].FaceWidth = five.Face[0].Position.Width
@@ -147,27 +202,6 @@ func v2() {
 		imageColl.ThrFaces["face++"] = make(map[string]interface{})
 		imageColl.ThrFaces["face++"]["83"] = result
 	}
-
-	//face++ res  V3
-	var thrRes *thrfacemodel.FaceModelV3
-	if strings.EqualFold(isRes, "not") {
-
-		thrRes, err = thrfacemodel.ThrFaceFileResV3(photoName, fileByte)
-		if err != nil {
-			log.Error(fmt.Sprintf("get face++ res fail err:%s", err))
-		}
-		res1B, _ := json.Marshal(thrRes)
-
-		var result interface{}
-		if err := json.Unmarshal(res1B, &result); err != nil {
-			fmt.Println("json unmarshal err=%s", err)
-		}
-		fmt.Println("-----result%s-----", result)
-		if imageColl.ThrFaces == nil {
-			imageColl.ThrFaces["face++"] = make(map[string]interface{})
-		}
-		imageColl.ThrFaces["face++"] = make(map[string]interface{})
-		imageColl.ThrFaces["face++"]["83"] = result
-	}
+	return imageColl, nil
 }
 */

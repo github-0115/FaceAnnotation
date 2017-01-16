@@ -29,13 +29,14 @@ type TaskImagesRep struct {
 }
 
 var (
-	imageDomain = "http://faceannotation.oss-cn-hangzhou.aliyuncs.com/"
+	imagesDomain = "http://faceannotation.oss-cn-hangzhou.aliyuncs.com/"
 )
 
 func GetTaskImages(c *gin.Context) {
 	name, _ := c.Get("username")
 	username := name.(string)
 	taskId := c.Query("task_id")
+	flag := c.DefaultQuery("flag", "not")
 	pageIndex, err := strconv.Atoi(c.Query("page"))
 	pageSize, err := strconv.Atoi(c.Query("rows"))
 	if err != nil {
@@ -59,7 +60,7 @@ func GetTaskImages(c *gin.Context) {
 
 	task, err := taskmodel.QueryTask(taskId)
 	if err != nil {
-		log.Error(fmt.Sprintf("query small task err %s", err))
+		log.Error(fmt.Sprintf("query task err %s", err))
 		c.JSON(400, gin.H{
 			"code":    vars.ErrTaskNotFound.Code,
 			"message": vars.ErrTaskNotFound.Msg,
@@ -67,9 +68,9 @@ func GetTaskImages(c *gin.Context) {
 		return
 	}
 
-	smallTask, err := smalltaskmodel.QueryfineTuneTask(taskId, "fineTune")
+	taskImages, err := imagemodel.QueryTaskImages(taskId)
 	if err != nil {
-		log.Error(fmt.Sprintf("query small task err %s", err))
+		log.Error(fmt.Sprintf("query task images err %s", err))
 		c.JSON(400, gin.H{
 			"code":    vars.ErrImageModelNotFound.Code,
 			"message": vars.ErrImageModelNotFound.Msg,
@@ -77,17 +78,61 @@ func GetTaskImages(c *gin.Context) {
 		return
 	}
 
-	taskImages, err := imagemodel.QueryTaskImages(taskId)
-	if err != nil {
-		log.Error(fmt.Sprintf("query small task err %s", err))
-		c.JSON(400, gin.H{
-			"code":    vars.ErrSmallTaskNotFound.Code,
-			"message": vars.ErrSmallTaskNotFound.Msg,
+	if strings.EqualFold(flag, "all") {
+		//
+		rep := make([]*TaskImagesRep, 0, 0)
+		for _, image := range taskImages {
+			thr_Res := imageend.ThrResults(task.PointType, image)
+			results := taskSwitchPoints(image, task.PointType)
+			var status int64 = 1
+			if results == nil {
+				results = make([]*imagemodel.Points, 0, 0)
+				status = 0
+			}
+			imRep := &TaskImagesRep{
+				TaskId:    image.TaskId,
+				Area:      "fineTune",
+				Md5:       imagesDomain + image.Md5,
+				PointType: strconv.Itoa(int(task.PointType)),
+				Result:    results,
+				ThrResult: thr_Res,
+				Status:    status,
+				CreatedAt: task.CreatedAt,
+			}
+			rep = append(rep, imRep)
+		}
+
+		total := int(math.Ceil(float64(task.Count) / float64(pageSize)))
+
+		c.JSON(200, gin.H{
+			"code":       0,
+			"tasks":      rep,
+			"count":      task.Count,
+			"page":       pageIndex,
+			"total":      total,
+			"created_at": task.CreatedAt.Format("2006-01-02 03:04:05"),
+			"records":    len(taskImages),
 		})
 		return
 	}
 
-	images := GetFineCompleteImages(taskImages, smallTask.TaskId, task.PointType)
+	smallTask, err := smalltaskmodel.QueryfineTuneTask(taskId, "fineTune")
+	if err != nil {
+		log.Error(fmt.Sprintf("query fineTune small task err %s", err))
+		rep := make([]*TaskImagesRep, 0, 0)
+		c.JSON(200, gin.H{
+			"code":       0,
+			"tasks":      rep,
+			"count":      task.Count,
+			"page":       pageIndex,
+			"total":      1,
+			"created_at": task.CreatedAt.Format("2006-01-02 03:04:05"),
+			"records":    0,
+		})
+		return
+	}
+
+	images := taskGetFineCompleteImages(taskImages, smallTask.TaskId, task.PointType)
 
 	var results []*imagemodel.ImageModel
 	if len(images) < pageIndex*pageSize && len(images) > (pageIndex-1)*pageSize {
@@ -102,29 +147,30 @@ func GetTaskImages(c *gin.Context) {
 		imRep := &TaskImagesRep{
 			TaskId:    image.TaskId,
 			Area:      smallTask.Areas,
-			Md5:       imageDomain + image.Md5,
+			Md5:       imagesDomain + image.Md5,
 			PointType: strconv.Itoa(int(smallTask.PointType)),
-			Result:    switchPoints(image, task.PointType),
+			Result:    taskSwitchPoints(image, task.PointType),
 			ThrResult: thr_Res,
-			Status:    task.Status,
+			Status:    smallTask.Status,
 			CreatedAt: task.CreatedAt,
 		}
 		rep = append(rep, imRep)
 	}
 
-	total := int(math.Ceil(float64(len(taskImages)) / float64(pageSize)))
+	total := int(math.Ceil(float64(len(images)) / float64(pageSize)))
 
 	c.JSON(200, gin.H{
-		"code":     0,
-		"tasks":    rep,
-		"complete": len(images),
-		"page":     pageIndex,
-		"total":    total,
-		"records":  len(taskImages),
+		"code":       0,
+		"tasks":      rep,
+		"count":      len(taskImages),
+		"page":       pageIndex,
+		"total":      total,
+		"created_at": task.CreatedAt.Format("2006-01-02 03:04:05"),
+		"records":    len(images),
 	})
 }
 
-func switchPoints(image *imagemodel.ImageModel, pointType int64) []*imagemodel.Points {
+func taskSwitchPoints(image *imagemodel.ImageModel, pointType int64) []*imagemodel.Points {
 	fineRes := make([]*imagemodel.Points, 0, 0)
 	if image.FineResults[strconv.Itoa(int(pointType))] == nil {
 		log.Info(fmt.Sprintf("image  = %s switch point", image.Md5))
@@ -160,7 +206,7 @@ func switchPoints(image *imagemodel.ImageModel, pointType int64) []*imagemodel.P
 	return fineRes
 }
 
-func GetFineCompleteImages(imageList []*imagemodel.ImageModel, stmId string, pointType int64) []*imagemodel.ImageModel {
+func taskGetFineCompleteImages(imageList []*imagemodel.ImageModel, stmId string, pointType int64) []*imagemodel.ImageModel {
 	list := make([]*imagemodel.ImageModel, 0, 0)
 	for _, image := range imageList {
 		result := image.FineResults[strconv.Itoa(int(pointType))]
