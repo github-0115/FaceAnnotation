@@ -3,6 +3,7 @@ package task
 import (
 	imageend "FaceAnnotation/service/api/image"
 	imagemodel "FaceAnnotation/service/model/imagemodel"
+	imagetaskmodel "FaceAnnotation/service/model/imagetaskmodel"
 	smalltaskmodel "FaceAnnotation/service/model/smalltaskmodel"
 	taskmodel "FaceAnnotation/service/model/taskmodel"
 	usermodel "FaceAnnotation/service/model/usermodel"
@@ -27,10 +28,6 @@ type TaskImagesRep struct {
 	Status    int64                 `json:"status"`
 	CreatedAt time.Time             `json:"created_at" `
 }
-
-var (
-	imagesDomain = "http://faceannotation.oss-cn-hangzhou.aliyuncs.com/"
-)
 
 func GetTaskImages(c *gin.Context) {
 	name, _ := c.Get("username")
@@ -58,6 +55,88 @@ func GetTaskImages(c *gin.Context) {
 		return
 	}
 
+	if strings.EqualFold(flag, "all") {
+		//
+		imageTaskColl, err := imagetaskmodel.QueryImageTask(taskId)
+		if err != nil {
+			log.Error(fmt.Sprintf("image task not found err", err.Error()))
+			c.JSON(400, gin.H{
+				"code":    vars.ErrImageTaskNotFound.Code,
+				"message": vars.ErrImageTaskNotFound.Msg,
+			})
+			return
+		}
+
+		tasks, err := taskmodel.GetImageTasks(imageTaskColl.TaskId)
+		if err != nil {
+			log.Error(fmt.Sprintf("query task err %s", err))
+		}
+
+		if tasks == nil {
+			rep := make([]*TaskImagesRep, 0, 0)
+			c.JSON(200, gin.H{
+				"code":       0,
+				"tasks":      rep,
+				"count":      0,
+				"page":       pageIndex,
+				"total":      len(imageTaskColl.Images),
+				"created_at": imageTaskColl.CreatedAt.Format("2006-01-02 03:04:05"),
+				"records":    0,
+			})
+			return
+		}
+		//		pointTypes := make([]int64, 0, 0)
+		var pointType int64 = 5
+		for _, task := range tasks {
+			//			pointTypes = append(pointTypes, task.PointType)
+			if task.PointType > pointType {
+				pointType = task.PointType
+			}
+		}
+
+		images, err := imagemodel.GetSmallTaskImages(imageTaskColl.Images)
+		if err != nil {
+			log.Error(fmt.Sprintf("query task images err %s", err))
+			c.JSON(400, gin.H{
+				"code":    vars.ErrImageModelNotFound.Code,
+				"message": vars.ErrImageModelNotFound.Msg,
+			})
+			return
+		}
+
+		var results []*imagemodel.ImageModel
+		if len(images) < pageIndex*pageSize && len(images) > (pageIndex-1)*pageSize {
+			results = images[(pageIndex-1)*pageSize : len(images)]
+		} else if len(images) > pageIndex*pageSize {
+			results = images[(pageIndex-1)*pageSize : pageIndex*pageSize]
+		}
+
+		rep := make([]*TaskImagesRep, 0, 0)
+		for _, image := range results {
+
+			imRep := &TaskImagesRep{
+				TaskId:    image.TaskId,
+				Md5:       imagesDomain + image.Md5,
+				PointType: strconv.Itoa(int(pointType)),
+				Status:    imageTaskColl.Status,
+				CreatedAt: imageTaskColl.CreatedAt,
+			}
+			rep = append(rep, imRep)
+
+		}
+		total := int(math.Ceil(float64(len(imageTaskColl.Images)) / float64(pageSize)))
+		c.JSON(200, gin.H{
+			"code":       0,
+			"tasks":      rep,
+			"count":      len(imageTaskColl.Images),
+			"page":       pageIndex,
+			"total":      total,
+			"created_at": imageTaskColl.CreatedAt.Format("2006-01-02 03:04:05"),
+			"records":    len(images),
+		})
+		return
+	}
+
 	task, err := taskmodel.QueryTask(taskId)
 	if err != nil {
 		log.Error(fmt.Sprintf("query task err %s", err))
@@ -78,44 +157,6 @@ func GetTaskImages(c *gin.Context) {
 		return
 	}
 
-	if strings.EqualFold(flag, "all") {
-		//
-		rep := make([]*TaskImagesRep, 0, 0)
-		for _, image := range taskImages {
-			thr_Res := imageend.ThrResults(task.PointType, image)
-			results := taskSwitchPoints(image, task.PointType)
-			var status int64 = 1
-			if results == nil {
-				results = make([]*imagemodel.Points, 0, 0)
-				status = 0
-			}
-			imRep := &TaskImagesRep{
-				TaskId:    image.TaskId,
-				Area:      "fineTune",
-				Md5:       imagesDomain + image.Md5,
-				PointType: strconv.Itoa(int(task.PointType)),
-				Result:    results,
-				ThrResult: thr_Res,
-				Status:    status,
-				CreatedAt: task.CreatedAt,
-			}
-			rep = append(rep, imRep)
-		}
-
-		total := int(math.Ceil(float64(task.Count) / float64(pageSize)))
-
-		c.JSON(200, gin.H{
-			"code":       0,
-			"tasks":      rep,
-			"count":      task.Count,
-			"page":       pageIndex,
-			"total":      total,
-			"created_at": task.CreatedAt.Format("2006-01-02 03:04:05"),
-			"records":    len(taskImages),
-		})
-		return
-	}
-
 	smallTask, err := smalltaskmodel.QueryfineTuneTask(taskId, "fineTune")
 	if err != nil {
 		log.Error(fmt.Sprintf("query fineTune small task err %s", err))
@@ -132,7 +173,7 @@ func GetTaskImages(c *gin.Context) {
 		return
 	}
 
-	images := taskGetFineCompleteImages(taskImages, smallTask.TaskId, task.PointType)
+	images := taskGetFineCompleteImages(taskImages, smallTask.SmallTaskId, task.PointType)
 
 	var results []*imagemodel.ImageModel
 	if len(images) < pageIndex*pageSize && len(images) > (pageIndex-1)*pageSize {
@@ -223,5 +264,6 @@ func taskGetFineCompleteImages(imageList []*imagemodel.ImageModel, stmId string,
 		}
 
 	}
+
 	return list
 }

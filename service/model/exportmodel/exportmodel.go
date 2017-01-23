@@ -1,13 +1,16 @@
 package exportmodel
 
 import (
+	cfg "FaceAnnotation/config"
 	imagemodel "FaceAnnotation/service/model/imagemodel"
+	"archive/zip"
 	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,13 +19,14 @@ import (
 )
 
 var (
-	dirPath         = "./exportfile/"
+	dirPath         = "./exportData/"
 	ErrDirNotFound  = errors.New("dir ads not found")
 	ErrFileNotFound = errors.New("file ads not found")
 	ErrCreateDir    = errors.New("create dir err")
 	ErrCreateFile   = errors.New("create file err")
 	ErrReadFile     = errors.New("read file err")
 	ErrWriteFile    = errors.New("write file err")
+	domain          = cfg.Cfg.Domian
 )
 
 type Rep struct {
@@ -33,26 +37,87 @@ type Rep struct {
 	N   float64 `json:"n"`
 }
 
-func SaveResFile(filename string, res *imagemodel.ImageModel) error {
-	fmt.Println(filename)
-	isExist, _ := PathExists(dirPath)
+type Res struct {
+	Name   string              `json:"name"`
+	Points []*imagemodel.Point `json:"url"`
+}
+
+var (
+	imagesDomain = "http://faceannotation.oss-cn-hangzhou.aliyuncs.com/"
+)
+
+func ImageDataZip(images []*imagemodel.ImageModel, ress []*Res, resName string) (string, error) {
+	// 创建一个缓冲区用来保存压缩文件内容
+	buf := new(bytes.Buffer)
+
+	// 创建一个压缩文档
+	w := zip.NewWriter(buf)
+
+	// 将文件加入压缩文档
+	for _, image := range images {
+		file, err := w.Create("img/" + image.Url)
+		if err != nil {
+			log.Error(fmt.Sprintf("create file err%v", err))
+			return "", ErrCreateFile
+		}
+
+		resbyte, _ := getUrlImg(imagesDomain + image.Md5)
+		_, err = file.Write(resbyte)
+		if err != nil {
+			log.Error(fmt.Sprintf("Write file err%v", err))
+		}
+	}
+
+	file, err := w.Create("points.txt")
+	if err != nil {
+		log.Error(fmt.Sprintf("create file err%v", err))
+		return "", ErrCreateFile
+	}
+	for _, res := range ress {
+		resbyte, _ := json.Marshal(res)
+
+		_, err = file.Write([]byte(res.Name + "\t" + string(resbyte) + "\n"))
+		if err != nil {
+			log.Error(fmt.Sprintf("Write file err%v", err))
+		}
+	}
+
+	// 关闭压缩文档
+	err = w.Close()
+	if err != nil {
+		log.Error(fmt.Sprintf("close file err%v", err))
+	}
+
+	// 将压缩文档内容写入文件
+	f, err := os.OpenFile(dirPath+resName, os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Error(fmt.Sprintf("open file err%v", err))
+	}
+	buf.WriteTo(f)
+
+	return domain + "get_export_data/" + resName, nil
+}
+
+func SaveImage(md5 string, filename string) error {
+
+	isExist, _ := PathExists(dirPath + "images/")
 
 	if !isExist {
-		err := os.Mkdir(dirPath, 0777)
+		err := os.Mkdir(dirPath+"images/", 0777)
 		if err != nil {
 			log.Error(fmt.Sprintf("create dir err%v", err))
 			return ErrCreateDir
 		}
 	}
 
-	file, err := os.Create(dirPath + filename + ".txt")
+	file, err := os.Create(dirPath + "images/" + filename)
 	if err != nil {
 		log.Error(fmt.Sprintf("create file err%v", err))
 		return ErrCreateFile
 	}
 	defer file.Close()
 
-	resbyte, _ := json.Marshal(res)
+	resbyte, _ := getUrlImg(imagesDomain + md5)
 
 	w := bufio.NewWriter(file)
 	n4, err := w.Write(resbyte)
@@ -62,30 +127,36 @@ func SaveResFile(filename string, res *imagemodel.ImageModel) error {
 	return nil
 }
 
-func SaveExportFile(filename string, imageUrl []Rep) error {
+func SaveImageRes(filename string, res []*imagemodel.Point) error {
+
 	isExist, _ := PathExists(dirPath)
 
 	if !isExist {
-		err := os.MkdirAll(dirPath, 0777)
+		err := os.Mkdir(dirPath, 0777)
 		if err != nil {
 			log.Error(fmt.Sprintf("create dir err%v", err))
 			return ErrCreateDir
 		}
 	}
-
-	file, err := os.Create(dirPath + filename)
+	var seekn int64 = 0
+	file, err := os.OpenFile(dirPath+"points.txt", os.O_WRONLY, 0644)
 	if err != nil {
-		log.Error(fmt.Sprintf("create file err%v", err))
+		file, err = os.Create(dirPath + "points.txt")
+		if err != nil {
+			log.Error(fmt.Sprintf("create file err%v", err))
+			return ErrCreateFile
+		}
 
-		return ErrCreateFile
+	} else {
+		// 查找文件末尾的偏移量
+		seekn, _ = file.Seek(0, os.SEEK_END)
+		fmt.Println(seekn)
 	}
+	defer file.Close()
 
-	_, err = file.WriteString(repToString(imageUrl))
-	if err != nil {
-		log.Error(fmt.Sprintf("write file err%v", err))
-		os.Remove(dirPath + filename)
-		return ErrWriteFile
-	}
+	res1B, _ := json.Marshal(res)
+	// 从末尾的偏移量开始写入内容
+	_, err = file.WriteAt([]byte(filename+"\t"+string(res1B)+"\n"), seekn)
 
 	return nil
 }
@@ -125,6 +196,24 @@ func ReadExportFile(filename string) (string, error) {
 	}
 
 	return string(data), nil
+}
+
+func RemoveExportFile(filename string) error {
+
+	isExist, _ := PathExists(dirPath + filename)
+
+	if !isExist {
+		log.Error(fmt.Sprintf(" file not Exists err"))
+		return ErrFileNotFound
+	}
+	err := os.Remove(dirPath + filename)
+	if err != nil {
+		log.Error(fmt.Sprintf("Remove file err%v", err))
+
+		return ErrFileNotFound
+	}
+
+	return nil
 }
 
 func ReadLocalFile(filePath string) (string, error) {
@@ -188,24 +277,21 @@ func PathExists(path string) (bool, error) {
 	return false, err
 }
 
-func repToString(s []Rep) string {
+func repToString(filename string, res []*imagemodel.Point) string {
 
 	var buffer bytes.Buffer
-	for i := 0; i < len(s); i++ {
-		out, err := json.Marshal(s[i])
+	for i := 0; i < len(res); i++ {
+		out, err := json.Marshal(res[i])
 		if err != nil {
 			panic(err)
 		}
-		if i == len(s)-1 {
-			buffer.WriteString(string(out))
-
-		} else {
+		if i == len(res)-1 {
 			buffer.WriteString(string(out) + "\n")
 		}
 
 	}
 
-	return buffer.String()
+	return filename + ":" + buffer.String()
 }
 
 func toString(s []string) string {
@@ -222,4 +308,20 @@ func toString(s []string) string {
 	}
 
 	return buffer.String()
+}
+
+func getUrlImg(url string) (pix []byte, err error) {
+	path := strings.Split(url, "/")
+	var name string
+	if len(path) > 1 {
+		name = path[len(path)-1]
+	}
+	fmt.Println(name)
+
+	resp, err := http.Get(url)
+	defer resp.Body.Close()
+	pix, err = ioutil.ReadAll(resp.Body)
+
+	return
+
 }

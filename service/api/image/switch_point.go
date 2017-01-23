@@ -2,10 +2,13 @@ package image
 
 import (
 	imagemodel "FaceAnnotation/service/model/imagemodel"
+	smalltaskmodel "FaceAnnotation/service/model/smalltaskmodel"
+	taskmodel "FaceAnnotation/service/model/taskmodel"
 	thrfacemodel "FaceAnnotation/service/model/thrfacemodel"
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	log "github.com/inconshreveable/log15"
 )
@@ -20,6 +23,30 @@ type PointsRep struct {
 	Mouth        []*imagemodel.Point `json:"mouth"`
 	Nouse        []*imagemodel.Point `json:"nouse"`
 	Face         []*imagemodel.Point `json:"face"`
+}
+
+type AllPointsRep struct {
+	FineResult []*imagemodel.Points `json:"fine_result"`
+	ResultRep  *ResultRep           `json:"result"`
+	PointType  int64                `json:"point_type"`
+	Status     int64                `json:"status"`
+}
+
+type ResPointsRep struct {
+	ResultRep *ResultRep `json:"result"`
+	PointType int64      `json:"point_type"`
+}
+
+type ResultRep struct {
+	LeftEyeBrow  []*imagemodel.Points `json:"leftEyebrow"`
+	RightEyeBrow []*imagemodel.Points `json:"rightEyebrow"`
+	LeftEye      []*imagemodel.Points `json:"leftEye"`
+	RightEye     []*imagemodel.Points `json:"rightEye"`
+	LeftEar      []*imagemodel.Points `json:"leftEar"`
+	RightEar     []*imagemodel.Points `json:"rightEar"`
+	Mouth        []*imagemodel.Points `json:"mouth"`
+	Nouse        []*imagemodel.Points `json:"nouse"`
+	Face         []*imagemodel.Points `json:"face"`
 }
 
 type Points struct {
@@ -102,7 +129,7 @@ func SwitchNinePoint(pointType int64, image *imagemodel.ImageModel) *PointsRep {
 
 func SwitchEightPoint(pointType int64, image *imagemodel.ImageModel) *PointsRep {
 	log.Info(fmt.Sprintf("image = %s switch 83 point", image.Md5))
-	//	fmt.Println(image.ThrFaces["deepir_import"])
+
 	if image.ThrFaces["deepir_import"] == nil {
 		if image.ThrFaces["face++"] == nil {
 			log.Info(fmt.Sprintf("image = %s thr point =nil", image.Md5))
@@ -110,9 +137,24 @@ func SwitchEightPoint(pointType int64, image *imagemodel.ImageModel) *PointsRep 
 		}
 		return faceResSwitchPoint(pointType, image)
 	}
+	var res1B []byte
+	if image.ThrFaces["deepir_import"]["95"] != nil {
+		res, err := json.Marshal(image.ThrFaces["deepir_import"]["95"])
+		if err != nil {
+			fmt.Println("json Marshal 95 err=%s", err)
+			return SwitchNilPoint(pointType)
+		}
+		res1B = res
+	} else {
+		res, err := json.Marshal(image.ThrFaces["deepir_import"][strconv.Itoa(int(pointType))])
+		if err != nil {
+			fmt.Println("json Marshal deepir import err=%s", err)
+			return SwitchNilPoint(pointType)
+		}
+		res1B = res
+	}
 
-	res1B, _ := json.Marshal(image.ThrFaces["deepir_import"][strconv.Itoa(int(pointType))])
-	//	fmt.Println(string(res1B)) //json
+	fmt.Println(string(res1B)) //json
 	imPoints := new(Points)
 	if err := json.Unmarshal(res1B, &imPoints.Points); err != nil {
 		fmt.Println("json unmarshal err=%s", err)
@@ -136,7 +178,9 @@ func SwitchEightPoint(pointType int64, image *imagemodel.ImageModel) *PointsRep 
 		}
 	}
 	fmt.Println(points)
-
+	if len(imPoints.Points) == 0 {
+		return SwitchNilPoint(pointType)
+	}
 	pRep := &PointsRep{
 		LeftEyeBrow:  []*imagemodel.Point{points[19], &imagemodel.Point{X: (points[21].X + points[22].X + points[23].X + points[24].X) / 4, Y: (points[21].Y + points[22].Y + points[23].Y + points[24].Y) / 4}, points[20], &imagemodel.Point{X: (points[23].X + points[24].X) / 2, Y: (points[23].Y + points[24].Y) / 2}, &imagemodel.Point{X: (points[21].X + points[22].X) / 2, Y: (points[21].Y + points[22].Y) / 2}, points[21], points[23], points[25], points[26], points[24]},
 		RightEyeBrow: []*imagemodel.Point{points[27], &imagemodel.Point{X: (points[31].X + points[32].X + points[29].X + points[30].X) / 4, Y: (points[31].Y + points[32].Y + points[29].Y + points[30].Y) / 4}, points[28], &imagemodel.Point{X: (points[31].X + points[32].X) / 2, Y: (points[31].Y + points[32].Y) / 2}, &imagemodel.Point{X: (points[29].X + points[30].X) / 2, Y: (points[29].Y + points[30].Y) / 2}, points[29], points[31], points[33], points[34], points[32]},
@@ -164,6 +208,12 @@ func faceResSwitchPoint(pointType int64, image *imagemodel.ImageModel) *PointsRe
 		fmt.Println("json unmarshal err=%s", err)
 		return SwitchNilPoint(pointType)
 	}
+
+	if faceRes.Faces == nil || len(faceRes.Faces) == 0 {
+		log.Info(fmt.Sprintf("image = %s face++ nil no face point", image.Md5))
+		return SwitchNilPoint(pointType)
+	}
+
 	//	fmt.Println("---faceRes%s---", faceRes)
 	points := make([]*imagemodel.Point, 0, 0)
 	var p *imagemodel.Point
@@ -323,32 +373,38 @@ func ThrResults(pointType int64, image *imagemodel.ImageModel) []*ThrResRep {
 		faceRes := &thrfacemodel.FaceModelV3{}
 		if err := json.Unmarshal([]byte(string(res1B)), &faceRes); err == nil {
 			//			fmt.Println("---faceRes%s----", faceRes) //json
-			landmark := faceRes.Faces[0].Landmark
-			if landmark != nil {
+			if faceRes.Faces != nil && len(faceRes.Faces) != 0 {
+				landmark := faceRes.Faces[0].Landmark
+				if landmark != nil {
 
-				points := make([]*imagemodel.Point, 0, 0)
-				var p *imagemodel.Point
-				for _, point := range faceRes.Faces[0].Landmark {
-					if point != nil {
-						p = &imagemodel.Point{
-							X: point.X,
-							Y: point.Y,
+					points := make([]*imagemodel.Point, 0, 0)
+					var p *imagemodel.Point
+					for _, point := range faceRes.Faces[0].Landmark {
+						if point != nil {
+							p = &imagemodel.Point{
+								X: point.X,
+								Y: point.Y,
+							}
+							points = append(points, p)
 						}
-						points = append(points, p)
 					}
-				}
-				//				if len(points) >= 83 {
-				thrResRep := &ThrResRep{
-					HeightScale: 1,
-					WidthScale:  1,
-					Name:        "face++",
-					Points:      points,
+					//				if len(points) >= 83 {
+					thrResRep := &ThrResRep{
+						HeightScale: 1,
+						WidthScale:  1,
+						Name:        "face++",
+						Points:      points,
+					}
+
+					resultPoints = append(resultPoints, thrResRep)
+				} else {
+					log.Info(fmt.Sprintf("landmark==nil "))
 				}
 
-				resultPoints = append(resultPoints, thrResRep)
 			} else {
-				log.Info(fmt.Sprintf("landmark==nil "))
+				log.Info(fmt.Sprintf("image = %s face++ nil no face point", image.Md5))
 			}
+
 		} else {
 			log.Info(fmt.Sprintf("face++json unmarshalerr "))
 		}
@@ -356,40 +412,182 @@ func ThrResults(pointType int64, image *imagemodel.ImageModel) []*ThrResRep {
 	}
 
 	if image.ThrFaces["deepir_import"] != nil {
-		if image.ThrFaces["deepir_import"][strconv.Itoa(int(pointType))] != nil {
-			res1B, _ := json.Marshal(image.ThrFaces["deepir_import"][strconv.Itoa(int(pointType))])
+		var res1B []byte
+		if image.ThrFaces["deepir_import"]["95"] != nil {
+			res, err := json.Marshal(image.ThrFaces["deepir_import"]["95"])
+			if err != nil {
+				fmt.Println("json Marshal 95 err=%s", err)
+				return resultPoints
+			}
+			res1B = res
+		} else {
+			res, err := json.Marshal(image.ThrFaces["deepir_import"][strconv.Itoa(int(pointType))])
+			if err != nil {
+				fmt.Println("json Marshal deepir import err=%s", err)
+				return resultPoints
+			}
+			res1B = res
+		}
 
-			imPoints := new(Points)
-			if err := json.Unmarshal(res1B, &imPoints.Points); err == nil {
-				points := make([]*imagemodel.Point, 0, 0)
-				var p *imagemodel.Point
-				for i := 0; i < len(imPoints.Points); i++ {
-					if i%2 == 0 {
-						x := imPoints.Points[i]
-						p = &imagemodel.Point{
-							X: x,
-						}
-					}
-					if i%2 == 1 {
-						y := imPoints.Points[i]
-						p.Y = y
-						points = append(points, p)
+		imPoints := new(Points)
+		if err := json.Unmarshal(res1B, &imPoints.Points); err == nil {
+			points := make([]*imagemodel.Point, 0, 0)
+			var p *imagemodel.Point
+			for i := 0; i < len(imPoints.Points); i++ {
+				if i%2 == 0 {
+					x := imPoints.Points[i]
+					p = &imagemodel.Point{
+						X: x,
 					}
 				}
-				if len(points) > 0 {
+				if i%2 == 1 {
+					y := imPoints.Points[i]
+					p.Y = y
+					points = append(points, p)
+				}
+			}
+			if len(points) > 0 {
+				thrResRep := &ThrResRep{
+					HeightScale: 1,
+					WidthScale:  1,
+					Name:        "import",
+					Points:      points,
+				}
+
+				resultPoints = append(resultPoints, thrResRep)
+			}
+
+		} else {
+			log.Info(fmt.Sprintf("import res json unmarshal err"))
+		}
+
+	}
+
+	return resultPoints
+}
+
+func GetThrResults(image *imagemodel.ImageModel) []*ThrResRep {
+	log.Info(fmt.Sprintf("image = %s switch face++ point", image.Md5))
+	resultPoints := make([]*ThrResRep, 0, 0)
+	if image.ThrFaces == nil {
+		log.Info(fmt.Sprintf("image = %s thr point==nil ", image.Md5))
+		return resultPoints
+	}
+
+	if image.ThrFaces["face++"]["83"] != nil {
+		log.Info(fmt.Sprintf("image = %s thr point ", image.Md5))
+		res1B, _ := json.Marshal(image.ThrFaces["face++"]["83"])
+		//		fmt.Println(string(res1B)) //json
+
+		faceRes := &thrfacemodel.FaceModelV3{}
+		if err := json.Unmarshal([]byte(string(res1B)), &faceRes); err == nil {
+			//			fmt.Println("---faceRes%s----", faceRes) //json
+			if faceRes.Faces != nil && len(faceRes.Faces) != 0 {
+				landmark := faceRes.Faces[0].Landmark
+				if landmark != nil {
+
+					points := make([]*imagemodel.Point, 0, 0)
+					var p *imagemodel.Point
+					for _, point := range faceRes.Faces[0].Landmark {
+						if point != nil {
+							p = &imagemodel.Point{
+								X: point.X,
+								Y: point.Y,
+							}
+							points = append(points, p)
+						}
+					}
+					//				if len(points) >= 83 {
 					thrResRep := &ThrResRep{
 						HeightScale: 1,
 						WidthScale:  1,
-						Name:        "import",
+						Name:        "face++",
 						Points:      points,
 					}
 
 					resultPoints = append(resultPoints, thrResRep)
+				} else {
+					log.Info(fmt.Sprintf("landmark==nil "))
+				}
+			} else {
+				log.Info(fmt.Sprintf("face==nil "))
+			}
+
+		} else {
+			log.Info(fmt.Sprintf("face++json unmarshalerr "))
+		}
+		//
+	}
+
+	if image.ThrFaces["deepir_import"] != nil {
+		var res1B []byte
+		if image.ThrFaces["deepir_import"]["95"] != nil {
+			res, err := json.Marshal(image.ThrFaces["deepir_import"]["95"])
+			if err != nil {
+				fmt.Println("json Marshal 95 err=%s", err)
+				return resultPoints
+			}
+			res1B = res
+		} else if image.ThrFaces["deepir_import"]["83"] != nil {
+			res, err := json.Marshal(image.ThrFaces["deepir_import"]["83"])
+			if err != nil {
+				fmt.Println("json Marshal deepir import err=%s", err)
+				return resultPoints
+			}
+			res1B = res
+		} else if image.ThrFaces["deepir_import"]["68"] != nil {
+			res, err := json.Marshal(image.ThrFaces["deepir_import"]["68"])
+			if err != nil {
+				fmt.Println("json Marshal deepir import err=%s", err)
+				return resultPoints
+			}
+			res1B = res
+		} else if image.ThrFaces["deepir_import"]["27"] != nil {
+			res, err := json.Marshal(image.ThrFaces["deepir_import"]["27"])
+			if err != nil {
+				fmt.Println("json Marshal deepir import err=%s", err)
+				return resultPoints
+			}
+			res1B = res
+		} else if image.ThrFaces["deepir_import"]["5"] != nil {
+			res, err := json.Marshal(image.ThrFaces["deepir_import"]["5"])
+			if err != nil {
+				fmt.Println("json Marshal deepir import err=%s", err)
+				return resultPoints
+			}
+			res1B = res
+		}
+
+		imPoints := new(Points)
+		if err := json.Unmarshal(res1B, &imPoints.Points); err == nil {
+			points := make([]*imagemodel.Point, 0, 0)
+			var p *imagemodel.Point
+			for i := 0; i < len(imPoints.Points); i++ {
+				if i%2 == 0 {
+					x := imPoints.Points[i]
+					p = &imagemodel.Point{
+						X: x,
+					}
+				}
+				if i%2 == 1 {
+					y := imPoints.Points[i]
+					p.Y = y
+					points = append(points, p)
+				}
+			}
+			if len(points) > 0 {
+				thrResRep := &ThrResRep{
+					HeightScale: 1,
+					WidthScale:  1,
+					Name:        "import",
+					Points:      points,
 				}
 
-			} else {
-				log.Info(fmt.Sprintf("import res json unmarshal err"))
+				resultPoints = append(resultPoints, thrResRep)
 			}
+
+		} else {
+			log.Info(fmt.Sprintf("import res json unmarshal err"))
 		}
 
 	}
@@ -433,6 +631,350 @@ func fineTuneSwitchPoint(pointType int64, image *imagemodel.ImageModel) *PointsR
 	}
 	fmt.Println(pRep)
 	return pRep
+}
+
+func GetAllResults(image *imagemodel.ImageModel) *AllPointsRep {
+	log.Info(fmt.Sprintf("image all res = %s switch point", image.Md5))
+	apres := &AllPointsRep{}
+	resultRep := &ResultRep{
+		LeftEyeBrow:  make([]*imagemodel.Points, 0, 0),
+		RightEyeBrow: make([]*imagemodel.Points, 0, 0),
+		LeftEye:      make([]*imagemodel.Points, 0, 0),
+		RightEye:     make([]*imagemodel.Points, 0, 0),
+		LeftEar:      make([]*imagemodel.Points, 0, 0),
+		RightEar:     make([]*imagemodel.Points, 0, 0),
+		Mouth:        make([]*imagemodel.Points, 0, 0),
+		Nouse:        make([]*imagemodel.Points, 0, 0),
+		Face:         make([]*imagemodel.Points, 0, 0),
+	}
+	if image.FineResults["95"] != nil {
+		apres.FineResult = fineResToPoints(image.FineResults["95"])
+		apres.ResultRep = resultRep
+		apres.Status = 1
+		apres.PointType = 95
+		return apres
+	}
+
+	if image.FineResults["83"] != nil {
+		apres.FineResult = fineResToPoints(image.FineResults["83"])
+		apres.ResultRep = resultRep
+		apres.Status = 1
+		apres.PointType = 83
+		return apres
+	}
+
+	if image.FineResults["68"] != nil {
+		apres.FineResult = fineResToPoints(image.FineResults["68"])
+		apres.ResultRep = resultRep
+		apres.Status = 1
+		apres.PointType = 68
+		return apres
+	}
+
+	if image.FineResults["27"] != nil {
+		apres.FineResult = fineResToPoints(image.FineResults["27"])
+		apres.ResultRep = resultRep
+		apres.Status = 1
+		apres.PointType = 27
+		return apres
+	}
+
+	if image.FineResults["5"] != nil {
+		apres.FineResult = fineResToPoints(image.FineResults["5"])
+		apres.ResultRep = resultRep
+		apres.Status = 1
+		apres.PointType = 5
+		return apres
+	}
+
+	if image.Results["95"] != nil {
+		apres.ResultRep = resToPoints(image.Results["95"])
+		apres.FineResult = make([]*imagemodel.Points, 0, 0)
+		apres.PointType = 95
+		apres.Status = 0
+		return apres
+	}
+
+	if image.Results["83"] != nil {
+		apres.ResultRep = resToPoints(image.Results["83"])
+		apres.FineResult = make([]*imagemodel.Points, 0, 0)
+		apres.PointType = 83
+		apres.Status = 0
+		return apres
+	}
+
+	if image.Results["68"] != nil {
+		apres.ResultRep = resToPoints(image.Results["68"])
+		apres.FineResult = make([]*imagemodel.Points, 0, 0)
+		apres.PointType = 68
+		apres.Status = 0
+		return apres
+	}
+
+	if image.Results["27"] != nil {
+		apres.ResultRep = resToPoints(image.Results["27"])
+		apres.FineResult = make([]*imagemodel.Points, 0, 0)
+		apres.PointType = 27
+		apres.Status = 0
+		return apres
+	}
+
+	if image.Results["5"] != nil {
+		apres.ResultRep = resToPoints(image.Results["5"])
+		apres.FineResult = make([]*imagemodel.Points, 0, 0)
+		apres.PointType = 5
+		apres.Status = 0
+		return apres
+	}
+
+	fmt.Println(apres)
+	return apres
+}
+
+func GetPointTypeResults(image *imagemodel.ImageModel, pointType int64) *AllPointsRep {
+	log.Info(fmt.Sprintf("image all res = %s switch point", image.Md5))
+	apres := &AllPointsRep{}
+
+	if image.FineResults[strconv.Itoa(int(pointType))] != nil {
+		apres.FineResult = fineResToPoints(image.FineResults[strconv.Itoa(int(pointType))])
+		apres.ResultRep = &ResultRep{}
+		apres.Status = 1
+		apres.PointType = pointType
+		return apres
+	}
+
+	if image.Results[strconv.Itoa(int(pointType))] != nil {
+		apres.ResultRep = resToPoints(image.Results[strconv.Itoa(int(pointType))])
+		apres.FineResult = make([]*imagemodel.Points, 0, 0)
+		apres.PointType = pointType
+		apres.Status = 0
+		return apres
+	}
+
+	fmt.Println(apres)
+	return apres
+}
+
+func GetPointTypeNotFineResults(image *imagemodel.ImageModel, pointType int64) *AllPointsRep {
+	log.Info(fmt.Sprintf("image all res = %s switch point", image.Md5))
+	apres := &AllPointsRep{}
+
+	if image.Results[strconv.Itoa(int(pointType))] != nil {
+		apres.ResultRep = resToPoints(image.Results[strconv.Itoa(int(pointType))])
+		apres.FineResult = make([]*imagemodel.Points, 0, 0)
+		apres.PointType = pointType
+		apres.Status = 0
+		return apres
+	}
+
+	fmt.Println(apres)
+	return apres
+}
+
+func GetTaskNotFineResults(image *imagemodel.ImageModel, task *taskmodel.TaskModel) *AllPointsRep {
+	log.Info(fmt.Sprintf("get task image all not fine res = %s switch point", image.Md5))
+	apres := &AllPointsRep{}
+
+	if image.Results[strconv.Itoa(int(task.PointType))] != nil {
+		apres.ResultRep = taskResToPoints(image.Results[strconv.Itoa(int(task.PointType))], task.TaskId)
+		apres.FineResult = make([]*imagemodel.Points, 0, 0)
+		apres.PointType = task.PointType
+		apres.Status = 0
+		return apres
+	}
+
+	fmt.Println(apres)
+	return apres
+}
+
+func GetSmallTaskNotFineResults(image *imagemodel.ImageModel, task *smalltaskmodel.SmallTaskModel) *AllPointsRep {
+	log.Info(fmt.Sprintf("get task image all not fine res = %s switch point", image.Md5))
+	apres := &AllPointsRep{}
+
+	if image.Results[strconv.Itoa(int(task.PointType))] != nil {
+		apres.ResultRep = smallTaskResToPoints(image.Results[strconv.Itoa(int(task.PointType))], task.SmallTaskId, task.Areas)
+		apres.FineResult = make([]*imagemodel.Points, 0, 0)
+		apres.PointType = task.PointType
+		apres.Status = 0
+		return apres
+	}
+
+	fmt.Println(apres)
+	return apres
+}
+
+func smallTaskResToPoints(result map[string][]*imagemodel.Points, taskId string, area string) *ResultRep {
+
+	resultRep := &ResultRep{
+		LeftEyeBrow:  make([]*imagemodel.Points, 0, 0),
+		RightEyeBrow: make([]*imagemodel.Points, 0, 0),
+		LeftEye:      make([]*imagemodel.Points, 0, 0),
+		RightEye:     make([]*imagemodel.Points, 0, 0),
+		LeftEar:      make([]*imagemodel.Points, 0, 0),
+		RightEar:     make([]*imagemodel.Points, 0, 0),
+		Mouth:        make([]*imagemodel.Points, 0, 0),
+		Nouse:        make([]*imagemodel.Points, 0, 0),
+		Face:         make([]*imagemodel.Points, 0, 0),
+	}
+
+	if result[area] != nil {
+		res := make([]*imagemodel.Points, 0, 0)
+		for _, point := range result[area] {
+			if strings.EqualFold(point.SmallTaskId, taskId) {
+				res = append(res, point)
+			}
+		}
+		switch area {
+		case "leftEyebrow":
+			resultRep.LeftEyeBrow = res
+		case "rightEyebrow":
+			resultRep.RightEyeBrow = res
+		case "leftEye":
+			resultRep.LeftEye = res
+		case "rightEye":
+			resultRep.RightEye = res
+		case "leftEar":
+			resultRep.LeftEar = res
+		case "rightEar":
+			resultRep.RightEar = res
+		case "mouth":
+			resultRep.Mouth = res
+		case "nouse":
+			resultRep.Nouse = res
+		case "face":
+			resultRep.Face = res
+		}
+	}
+
+	return resultRep
+}
+
+func taskResToPoints(result map[string][]*imagemodel.Points, taskId string) *ResultRep {
+	var areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "leftEar", "rightEar", "mouth", "nouse", "face"}
+
+	resultRep := &ResultRep{
+		LeftEyeBrow:  make([]*imagemodel.Points, 0, 0),
+		RightEyeBrow: make([]*imagemodel.Points, 0, 0),
+		LeftEye:      make([]*imagemodel.Points, 0, 0),
+		RightEye:     make([]*imagemodel.Points, 0, 0),
+		LeftEar:      make([]*imagemodel.Points, 0, 0),
+		RightEar:     make([]*imagemodel.Points, 0, 0),
+		Mouth:        make([]*imagemodel.Points, 0, 0),
+		Nouse:        make([]*imagemodel.Points, 0, 0),
+		Face:         make([]*imagemodel.Points, 0, 0),
+	}
+	for _, area := range areas {
+		if result[area] != nil {
+			points := getSmallTaskRes(result[area], taskId, area)
+			switch area {
+			case "leftEyebrow":
+				resultRep.LeftEyeBrow = points
+			case "rightEyebrow":
+				resultRep.RightEyeBrow = points
+			case "leftEye":
+				resultRep.LeftEye = points
+			case "rightEye":
+				resultRep.RightEye = points
+			case "leftEar":
+				resultRep.LeftEar = points
+			case "rightEar":
+				resultRep.RightEar = points
+			case "mouth":
+				resultRep.Mouth = points
+			case "nouse":
+				resultRep.Nouse = points
+			case "face":
+				resultRep.Face = points
+			}
+		}
+	}
+	return resultRep
+}
+
+func getSmallTaskRes(points []*imagemodel.Points, taskId string, area string) []*imagemodel.Points {
+	res := make([]*imagemodel.Points, 0, 0)
+	smallTask, err := smalltaskmodel.QueryfineTuneTask(taskId, area)
+	if err != nil {
+		log.Error(fmt.Sprintf("query fineTune small task not found err %s", err))
+		return res
+	}
+
+	for _, point := range points {
+		if strings.EqualFold(point.SmallTaskId, smallTask.SmallTaskId) {
+			res = append(res, point)
+		}
+	}
+	return res
+}
+
+func resToPoints(result map[string][]*imagemodel.Points) *ResultRep {
+	var areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "leftEar", "rightEar", "mouth", "nouse", "face"}
+	resultRep := &ResultRep{
+		LeftEyeBrow:  make([]*imagemodel.Points, 0, 0),
+		RightEyeBrow: make([]*imagemodel.Points, 0, 0),
+		LeftEye:      make([]*imagemodel.Points, 0, 0),
+		RightEye:     make([]*imagemodel.Points, 0, 0),
+		LeftEar:      make([]*imagemodel.Points, 0, 0),
+		RightEar:     make([]*imagemodel.Points, 0, 0),
+		Mouth:        make([]*imagemodel.Points, 0, 0),
+		Nouse:        make([]*imagemodel.Points, 0, 0),
+		Face:         make([]*imagemodel.Points, 0, 0),
+	}
+	for _, area := range areas {
+		if result[area] != nil {
+			//
+			switch area {
+			case "leftEyebrow":
+				resultRep.LeftEyeBrow = result[area]
+			case "rightEyebrow":
+				resultRep.RightEyeBrow = result[area]
+			case "leftEye":
+				resultRep.LeftEye = result[area]
+			case "rightEye":
+				resultRep.RightEye = result[area]
+			case "leftEar":
+				resultRep.LeftEar = result[area]
+			case "rightEar":
+				resultRep.RightEar = result[area]
+			case "mouth":
+				resultRep.Mouth = result[area]
+			case "nouse":
+				resultRep.Nouse = result[area]
+			case "face":
+				resultRep.Face = result[area]
+			}
+		}
+	}
+	return resultRep
+}
+
+func fineResToPoints(fineResults []*imagemodel.FineResult) []*imagemodel.Points {
+	fineRes := make([]*imagemodel.Points, 0, 0)
+
+	for _, fine := range fineResults {
+		points := make([]*imagemodel.Point, 0, 0)
+		//		var p *imagemodel.Point
+		for _, point := range fine.Result {
+			if point != nil {
+				for _, res := range point {
+					points = append(points, res)
+				}
+			}
+		}
+
+		pointsRes := &imagemodel.Points{
+			SmallTaskId: fine.SmallTaskId,
+			User:        fine.User,
+			Points:      points,
+			Sys:         fine.Sys,
+			CreatedAt:   fine.CreatedAt,
+			FinishedAt:  fine.FinishedAt,
+		}
+
+		fineRes = append(fineRes, pointsRes)
+	}
+
+	return fineRes
 }
 
 func SwitchNilPoint(pointType int64) *PointsRep {

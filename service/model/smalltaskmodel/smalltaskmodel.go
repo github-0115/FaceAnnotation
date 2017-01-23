@@ -18,7 +18,7 @@ type SmallTaskModel struct {
 	PointType       int64     `bson:"point_type" json:"point_type" binding:"required"`
 	Areas           string    `bson:"areas" json:"areas" binding:"required"`             //标识标注的哪个部位
 	LimitCount      int64     `bson:"limit_count" json:"limit_count" binding:"required"` //人数限制
-	Status          int64     `bson:"status" json:"status" binding:"required"`           // 0 创建成功  1  正在进行中 2 已标注完成
+	Status          int64     `bson:"status" json:"status" binding:"required"`           // 0 创建成功  1  正在进行中 2 已标注完成 3 关闭任务
 	CreatedAt       time.Time `bson:"created_at" json:"created_at" binding:"required"`
 }
 
@@ -26,6 +26,7 @@ type taskStatus struct {
 	NotStart int64
 	Start    int64
 	Success  int64
+	Stop     int64
 }
 
 type ImageModel struct {
@@ -37,7 +38,7 @@ type ImageModel struct {
 var (
 	ErrSmallTaskModelNotFound = errors.New("small task Model not found")
 	ErrSmallTaskModelCursor   = errors.New("Cursor err")
-	TaskStatus                = &taskStatus{0, 1, 2}
+	TaskStatus                = &taskStatus{0, 1, 2, 3}
 )
 
 func (stm *SmallTaskModel) Save() error {
@@ -110,14 +111,41 @@ func QueryNotSmallTask() ([]*SmallTaskModel, error) {
 	return results, nil
 }
 
+func QueryNotSmallTasks() ([]*SmallTaskModel, error) {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	var results []*SmallTaskModel
+	err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
+		"$and": []interface{}{
+			bson.M{"status": bson.M{"$ne": TaskStatus.Success}},
+			bson.M{"status": bson.M{"$ne": TaskStatus.Stop}},
+		},
+	}).Sort("areas").All(&results)
+
+	if err != nil {
+		log.Error(fmt.Sprintf("find small_task err ", err))
+		if err == mgo.ErrNotFound {
+			return nil, ErrSmallTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return nil, ErrSmallTaskModelCursor
+		}
+		return nil, err
+	}
+	return results, nil
+}
+
 func QueryNorNotSmallTask() ([]*SmallTaskModel, error) {
 	s := db.Face.GetSession()
 	defer s.Close()
 
 	var results []*SmallTaskModel
 	err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
-		"areas":  bson.M{"$ne": "fineTune"},
-		"status": bson.M{"$ne": TaskStatus.Success},
+		"areas": bson.M{"$ne": "fineTune"},
+		"$and": []interface{}{
+			bson.M{"status": bson.M{"$ne": TaskStatus.Success}},
+			bson.M{"status": bson.M{"$ne": TaskStatus.Stop}},
+		},
 	}).Sort("areas").All(&results)
 
 	if err != nil {
@@ -138,8 +166,11 @@ func QueryAreaNotSmallTask(area string) ([]*SmallTaskModel, error) {
 
 	var results []*SmallTaskModel
 	err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
-		"areas":  area,
-		"status": bson.M{"$ne": TaskStatus.Success},
+		"areas": area,
+		"$and": []interface{}{
+			bson.M{"status": bson.M{"$ne": TaskStatus.Success}},
+			bson.M{"status": bson.M{"$ne": TaskStatus.Stop}},
+		},
 	}).Sort("areas").All(&results)
 
 	if err != nil {
@@ -233,6 +264,7 @@ func QueryTaskSmallTasks(taskId string) ([]*SmallTaskModel, error) {
 	err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
 		"task_id": taskId,
 		"status":  bson.M{"$ne": TaskStatus.Success},
+		//		"status":  bson.M{"$ne": TaskStatus.Stop},
 	}).Sort("areas").All(&results)
 
 	if err != nil {

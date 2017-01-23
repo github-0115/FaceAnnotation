@@ -29,6 +29,7 @@ type taskStatus struct {
 	ImportFail    int64 // 2 导入图片失败
 	Start         int64 // 3 正在进行中
 	Success       int64 // 4 标注完成
+	Stop          int64 // 5 关闭任务
 }
 
 type ImportModel struct {
@@ -42,7 +43,7 @@ var (
 	ErrDirNotFound       = errors.New("dir ads not found")
 	ErrFileNotFound      = errors.New("file ads not found")
 	ErrReadFile          = errors.New("read file err")
-	TaskStatus           = &taskStatus{0, 1, 2, 3, 4}
+	TaskStatus           = &taskStatus{0, 1, 2, 3, 4, 5}
 )
 
 func (t *TaskModel) Save() error {
@@ -90,6 +91,27 @@ func QueryTaskList(status int64) ([]*TaskModel, error) {
 		return nil, err
 	}
 	return result, nil
+}
+
+func GetImageTasks(taskids []string) ([]*TaskModel, error) {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	var results []*TaskModel
+	err := s.DB(db.Face.DB).C("task").Find(bson.M{
+		"task_id": bson.M{"$in": taskids},
+	}).All(&results)
+
+	if err != nil {
+		log.Error(fmt.Sprintf("find image tasks err ", err))
+		if err == mgo.ErrNotFound {
+			return nil, ErrTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return nil, ErrTaskModelCursor
+		}
+		return nil, err
+	}
+	return results, nil
 }
 
 func QueryPageTasks(pageIndex int, pageSize int) ([]*TaskModel, int, error) {
@@ -146,6 +168,26 @@ func UpdateTaskImageStatus(title string, url string, status int64) error {
 
 	if err != nil {
 		log.Error(fmt.Sprintf("update task image status err ", err))
+		if err == mgo.ErrNotFound {
+			return ErrTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return ErrTaskModelCursor
+		}
+		return err
+	}
+	return nil
+}
+
+func RemoveTask(taskId string) error {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	err := s.DB(db.Face.DB).C("task").Remove(bson.M{
+		"task_id": taskId,
+	})
+
+	if err != nil {
+		log.Error(fmt.Sprintf("remove task err ", err))
 		if err == mgo.ErrNotFound {
 			return ErrTaskModelNotFound
 		} else if err == mgo.ErrCursor {

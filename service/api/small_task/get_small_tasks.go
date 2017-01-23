@@ -7,11 +7,18 @@ import (
 	usermodel "FaceAnnotation/service/model/usermodel"
 	vars "FaceAnnotation/service/vars"
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/inconshreveable/log15"
+)
+
+var (
+	s = rand.NewSource(time.Now().Unix())
+	r = rand.New(s)
 )
 
 func GetSmallTasks(c *gin.Context) {
@@ -68,14 +75,14 @@ func GetSmallTasks(c *gin.Context) {
 		return
 	}
 
-	timeOutTask, err := getTimeOutImage(username)
-	if timeOutTask != "" {
-		c.JSON(200, gin.H{
-			"code":          0,
-			"small_task_id": timeOutTask,
-		})
-		return
-	}
+	//	timeOutTask, err := getTimeOutImage(username)
+	//	if timeOutTask != "" {
+	//		c.JSON(200, gin.H{
+	//			"code":          0,
+	//			"small_task_id": timeOutTask,
+	//		})
+	//		return
+	//	}
 
 	var (
 		smalltaskList []*smalltaskmodel.SmallTaskModel
@@ -113,24 +120,42 @@ func GetSmallTasks(c *gin.Context) {
 		return
 	}
 
-	smallTaskId, err := getSmallTasksId(username, smalltaskList)
-	if err != nil {
-		log.Error(fmt.Sprintf("not small task to allot err %s", err))
-		c.JSON(200, gin.H{
-			"code":    vars.ErrNotSmallTask.Code,
-			"message": vars.ErrNotSmallTask.Msg,
-		})
-		return
+	var smallTaskId string
+	for {
+		smallTaskId, err = getTasksId(username, smalltaskList[r.Intn(len(smalltaskList))])
+		if err != nil {
+			log.Error(fmt.Sprintf("not small task to allot err %s", err))
+		}
+		if !strings.EqualFold(smallTaskId, "") {
+			break
+		} else {
+			log.Error(fmt.Sprintf("not small task to allot err %s", err))
+			c.JSON(200, gin.H{
+				"code":    vars.ErrNotSmallTask.Code,
+				"message": vars.ErrNotSmallTask.Msg,
+			})
+			return
+		}
 	}
 
-	if strings.EqualFold(smallTaskId, "") {
-		log.Error(fmt.Sprintf("not small task to allot err %s", err))
-		c.JSON(200, gin.H{
-			"code":    vars.ErrNotSmallTask.Code,
-			"message": vars.ErrNotSmallTask.Msg,
-		})
-		return
-	}
+	//	smallTaskId, err := getSmallTasksId(username, smalltaskList)
+	//	if err != nil {
+	//		log.Error(fmt.Sprintf("not small task to allot err %s", err))
+	//		c.JSON(200, gin.H{
+	//			"code":    vars.ErrNotSmallTask.Code,
+	//			"message": vars.ErrNotSmallTask.Msg,
+	//		})
+	//		return
+	//	}
+
+	//	if strings.EqualFold(smallTaskId, "") {
+	//		log.Error(fmt.Sprintf("not small task to allot err %s", err))
+	//		c.JSON(200, gin.H{
+	//			"code":    vars.ErrNotSmallTask.Code,
+	//			"message": vars.ErrNotSmallTask.Msg,
+	//		})
+	//		return
+	//	}
 
 	c.JSON(200, gin.H{
 		"code":          0,
@@ -195,9 +220,77 @@ func getFineTune(username string, smalltaskList []*smalltaskmodel.SmallTaskModel
 	return "", nil
 }
 
+func getTasksId(username string, smallTask *smalltaskmodel.SmallTaskModel) (string, error) {
+
+	imageList, err := imagemodel.GetSmallTaskImages(smallTask.SmallTaskImages)
+	if err != nil {
+		log.Error(fmt.Sprintf("image query err", err.Error()))
+		return "", nil
+	}
+
+	notImages := getNotImageList(imageList, username, smallTask.Areas, smallTask.LimitCount, smallTask.SmallTaskId, smallTask.PointType)
+	if len(notImages) == 0 {
+		log.Error(fmt.Sprintf("Under the task gets no pictures err"))
+		return "", nil
+	}
+
+	for _, image := range notImages {
+		timeOutModels, err := timeoutmodel.QuerySmallTaskImage(image.Md5, smallTask.SmallTaskId)
+		if err != nil {
+			if err != timeoutmodel.ErrTimeOutModelNotFound {
+				log.Error(fmt.Sprintf("image query err", err.Error()))
+				continue
+			}
+		}
+		if timeOutModels == nil {
+			return smallTask.SmallTaskId, nil
+		}
+		var flag bool = false
+		for _, res := range timeOutModels {
+			if strings.EqualFold(res.User, username) {
+				flag = true
+				break
+			}
+		}
+		if flag {
+			continue
+		}
+		//继续判断是否超出数量限制
+		result := image.Results[strconv.Itoa(int(smallTask.PointType))][smallTask.Areas]
+		var count int64 = 0
+		for _, res := range result {
+			if strings.EqualFold(res.SmallTaskId, smallTask.SmallTaskId) {
+				count += 1
+			}
+		}
+
+		if int64(len(timeOutModels))+count >= smallTask.LimitCount {
+			continue
+		}
+
+		return smallTask.SmallTaskId, nil
+	}
+
+	return "", nil
+}
+
 //筛选可以获取到image的taskid
 func getSmallTasksId(username string, smalltaskList []*smalltaskmodel.SmallTaskModel) (string, error) {
+	timeOutImages, err := timeoutmodel.QueryUserImages(username)
+	if err != nil {
+		if err != timeoutmodel.ErrTimeOutModelNotFound {
+			log.Error(fmt.Sprintf("time out image query err", err.Error()))
+			return "", err
+		}
+	}
+
 	for _, smallTask := range smalltaskList {
+		for _, timeOutimage := range timeOutImages {
+			if strings.EqualFold(timeOutimage.SmallTaskId, smallTask.SmallTaskId) {
+				continue
+			}
+		}
+
 		imageList, err := imagemodel.GetSmallTaskImages(smallTask.SmallTaskImages)
 		if err != nil {
 			log.Error(fmt.Sprintf("image query err", err.Error()))
@@ -252,8 +345,10 @@ func getSmallTasksId(username string, smalltaskList []*smalltaskmodel.SmallTaskM
 
 //查出结果中没有自己的且未标完的
 func getFineNotImageList(imageList []*imagemodel.ImageModel, username string, limitCount int64, stmId string, pointType int64) []*imagemodel.ImageModel {
+
 	list := make([]*imagemodel.ImageModel, 0, 0)
 	for _, image := range imageList {
+
 		result := image.FineResults[strconv.Itoa(int(pointType))]
 		//		log.Info(fmt.Sprintf("image query result %s err", result))
 		if len(result) == 0 || result == nil {

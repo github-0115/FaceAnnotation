@@ -47,7 +47,7 @@ func QueryUser(username string) (*UserColl, error) {
 	s := db.User.GetSession()
 	defer s.Close()
 	err := s.DB(db.User.DB).C("user").Find(bson.M{
-		"username": username,
+		"username": bson.M{"$regex": "^" + username + "$", "$options": "i"},
 	}).One(coll)
 
 	if err != nil {

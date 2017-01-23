@@ -2,7 +2,7 @@ package import_data
 
 import (
 	imagemodel "FaceAnnotation/service/model/imagemodel"
-	//	taskmodel "FaceAnnotation/service/model/taskmodel"
+	imagetaskmodel "FaceAnnotation/service/model/imagetaskmodel"
 	uploadmodel "FaceAnnotation/service/model/uploadmodel"
 	vars "FaceAnnotation/service/vars"
 	"crypto/md5"
@@ -17,6 +17,8 @@ import (
 )
 
 func ImportImage(c *gin.Context) {
+	imageTaskId := c.PostForm("image_task_id")
+	introduce := c.PostForm("introduce")
 	isRes := c.PostForm("isRes")
 	resFile, _, err := c.Request.FormFile("res")
 	imageFile, imageFileHeader, err := c.Request.FormFile("image")
@@ -25,6 +27,16 @@ func ImportImage(c *gin.Context) {
 		c.JSON(400, gin.H{
 			"code":    vars.ErrImportImageParmars.Code,
 			"message": vars.ErrImportImageParmars.Msg,
+		})
+		return
+	}
+
+	imagetaskColl, err := imagetaskmodel.QueryImageTask(imageTaskId)
+	if err != nil {
+		log.Error(fmt.Sprintf("image task not found err", err.Error()))
+		c.JSON(400, gin.H{
+			"code":    vars.ErrImageTaskNotFound.Code,
+			"message": vars.ErrImageTaskNotFound.Msg,
 		})
 		return
 	}
@@ -111,6 +123,22 @@ func ImportImage(c *gin.Context) {
 			"message": vars.ErrImageModelUpdate.Msg,
 		})
 		return
+	}
+
+	err = imagetaskmodel.UpdateImageTaskImages(imagetaskColl.ImageTaskId, imageColl.Md5)
+	if err != nil {
+		log.Error(fmt.Sprintf("update image task err", err.Error()))
+		c.JSON(400, gin.H{
+			"code":    vars.ErrImageTaskNotFound.Code,
+			"message": vars.ErrImageTaskNotFound.Msg,
+		})
+		return
+	}
+	if !strings.EqualFold(imagetaskColl.Introduce, introduce) {
+		err = imagetaskmodel.UpdateImageTaskIntroduce(imagetaskColl.ImageTaskId, introduce)
+		if err != nil {
+			log.Error(fmt.Sprintf("update image task introduce err", err.Error()))
+		}
 	}
 
 	c.JSON(200, gin.H{

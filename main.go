@@ -3,6 +3,7 @@ package main
 import (
 	exportendpoint "FaceAnnotation/service/api/export_data"
 	imageendpoint "FaceAnnotation/service/api/image"
+	imagetaskendpoint "FaceAnnotation/service/api/image_task"
 	dataendpoint "FaceAnnotation/service/api/import_data"
 	loginendpoint "FaceAnnotation/service/api/login"
 	smalltaskendpoint "FaceAnnotation/service/api/small_task"
@@ -41,8 +42,8 @@ func main() {
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 	r.Use(cors.Middleware(cors.Config{
 		Origins:         "*",
-		Methods:         "POST",
-		RequestHeaders:  "Origin, Authorization, Content-Type, Access-Control-Allow-Headers, LoginToken",
+		Methods:         "GET,POST,PUT,DELETE",
+		RequestHeaders:  "Origin, Authorization, Content-Type, Access-Control-Allow-Headers, LoginToken,X-Requested-With, X-CSRF-Token",
 		ExposedHeaders:  "",
 		MaxAge:          50 * time.Second,
 		Credentials:     true,
@@ -50,8 +51,8 @@ func main() {
 	}))
 
 	r.Static("origin_images", "./origin_images")
+	r.Static("get_export_data", "./exportData")
 	r.POST("import_data", dataendpoint.ImportData)
-	r.POST("export_data", exportendpoint.ExportData)
 	authorized := r.Group("/user")
 	{
 		authorized.POST("login", loginendpoint.Login)
@@ -65,20 +66,29 @@ func main() {
 		imagegroup.POST("import_image", dataendpoint.ImportImage)
 		imagegroup.POST("import_images", dataendpoint.ImportImages)
 		imagegroup.POST("import_res", dataendpoint.ImportResult)
+		imagegroup.POST("export_data", exportendpoint.ExportData)
+		imagegroup.PUT("remove_data", exportendpoint.RemoveExportData)
 	}
 
 	taskgroup := r.Group("/task")
 	taskgroup.Use(middleware.AuthToken)
 	{
-		taskgroup.POST("create_task", taskendpoint.CreateTask)
-		taskgroup.GET("task_list", taskendpoint.TaskList)
-		taskgroup.GET("task_allimages", taskendpoint.GetTaskAllImages)
-		taskgroup.GET("task_fineimages", taskendpoint.GetTaskImages)
-		taskgroup.GET("task_images", taskendpoint.GetTaskImages)
-		taskgroup.POST("create_small_task", smalltaskendpoint.CreateSmallTask)
+		taskgroup.GET("create_image_task", imagetaskendpoint.CreateImageTask)
+		taskgroup.POST("image_create_task", taskendpoint.ImageCreateTask)
+		taskgroup.GET("all_images", imagetaskendpoint.GetAllImages)
+		taskgroup.PUT("start_task", taskendpoint.StartTask)
+		taskgroup.PUT("stop_task", taskendpoint.StopTask)
+		taskgroup.GET("image_task_list", imagetaskendpoint.ImageTaskList)
 		taskgroup.GET("get_small_tasks", smalltaskendpoint.GetSmallTasks)
+		taskgroup.GET("task_all_images", taskendpoint.GetTaskAllImages)
+		taskgroup.GET("small_task_all_images", smalltaskendpoint.GetSmallTaskAllImages)
+		taskgroup.PUT("remove_image_task", imagetaskendpoint.RemoveImageTask)
+		taskgroup.PUT("remove_task", taskendpoint.RemoveTask)
+		taskgroup.POST("create_small_task", smalltaskendpoint.CreateSmallTask)
 		taskgroup.GET("small_task_list", smalltaskendpoint.SmallTaskList)
 		taskgroup.GET("small_image_list", smalltaskendpoint.GetSmallTaskImages)
+		taskgroup.POST("create_task", taskendpoint.CreateTask)
+		taskgroup.GET("task_list", taskendpoint.TaskList)
 	}
 
 	if *debug == false {

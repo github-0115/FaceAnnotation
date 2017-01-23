@@ -113,6 +113,27 @@ func GetSmallTaskImages(md5s []string) ([]*ImageModel, error) {
 	return results, nil
 }
 
+func GetPageTaskImages(md5s []string, pageIndex int, pageSize int) ([]*ImageModel, error) {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	var results []*ImageModel
+	err := s.DB(db.Face.DB).C("image").Find(bson.M{
+		"md5": bson.M{"$in": md5s},
+	}).Skip((pageIndex - 1) * pageSize).Limit(pageSize).All(&results)
+
+	if err != nil {
+		log.Error(fmt.Sprintf("find small task image err ", err))
+		if err == mgo.ErrNotFound {
+			return nil, ErrImageModelNotFound
+		} else if err == mgo.ErrCursor {
+			return nil, ErrImageModelCursor
+		}
+		return nil, err
+	}
+	return results, nil
+}
+
 func QueryTaskImages(taskId string) ([]*ImageModel, error) {
 	s := db.Face.GetSession()
 	defer s.Close()
