@@ -111,6 +111,28 @@ func QueryNotSmallTask() ([]*SmallTaskModel, error) {
 	return results, nil
 }
 
+func QueryTaskImageSmallTask(id string, md5 string) ([]*SmallTaskModel, error) {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	var results []*SmallTaskModel
+	err := s.DB(db.Face.DB).C("small_task").Find(bson.M{
+		"task_id":           id,
+		"small_task_images": md5,
+	}).Sort("areas").All(&results)
+
+	if err != nil {
+		log.Error(fmt.Sprintf("find small_task err ", err))
+		if err == mgo.ErrNotFound {
+			return nil, ErrSmallTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return nil, ErrSmallTaskModelCursor
+		}
+		return nil, err
+	}
+	return results, nil
+}
+
 func QueryNotSmallTasks() ([]*SmallTaskModel, error) {
 	s := db.Face.GetSession()
 	defer s.Close()
@@ -310,6 +332,26 @@ func UpdateSmallTasks(id string, value int64) error {
 
 	if err != nil {
 		log.Error(fmt.Sprintf("find small task err ", err))
+		if err == mgo.ErrNotFound {
+			return ErrSmallTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return ErrSmallTaskModelCursor
+		}
+		return err
+	}
+	return nil
+}
+
+func RemoveSmallTaskImage(id string, md5 string) error {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	err := s.DB(db.Face.DB).C("small_task").Update(bson.M{
+		"small_task_id": id,
+	}, bson.M{"$pull": bson.M{"small_task_images": md5}})
+
+	if err != nil {
+		log.Error(fmt.Sprintf("remove small task err ", err))
 		if err == mgo.ErrNotFound {
 			return ErrSmallTaskModelNotFound
 		} else if err == mgo.ErrCursor {

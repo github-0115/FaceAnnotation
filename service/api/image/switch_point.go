@@ -64,14 +64,113 @@ func SwitchPoint(pointType int64, image *imagemodel.ImageModel) *PointsRep {
 	log.Info(fmt.Sprintf("image = %s switch point", image.Md5))
 	switch pointType {
 	case 5:
+		return switchAllPoint(pointType, image)
 	case 27:
+		return switchAllPoint(pointType, image)
 	case 68:
+		return switchAllPoint(pointType, image)
 	case 83:
 		return SwitchEightPoint(pointType, image)
 	case 95:
 		return SwitchNinePoint(pointType, image)
 	}
 	return SwitchNilPoint(pointType)
+}
+
+func switchAllPoint(pointType int64, image *imagemodel.ImageModel) *PointsRep {
+	log.Info(fmt.Sprintf("image = %s switch all point", image.Md5))
+	if image.ThrFaces["deepir_import"][strconv.Itoa(int(pointType))] == nil {
+		if image.ThrFaces["face++"] == nil {
+			log.Info(fmt.Sprintf("image = %s thr point =nil", image.Md5))
+			return SwitchNilPoint(pointType)
+		}
+		return faceResSwitchPoint(pointType, image)
+	}
+
+	res1B, _ := json.Marshal(image.ThrFaces["deepir_import"][strconv.Itoa(int(pointType))])
+	//	fmt.Println(string(res1B)) //json
+	imPoints := new(Points)
+	if err := json.Unmarshal(res1B, &imPoints.Points); err != nil {
+		fmt.Println("json unmarshal err=%s", err)
+		return SwitchNilPoint(pointType)
+	}
+	fmt.Println(len(imPoints.Points))
+
+	points := make([]*imagemodel.Point, 0, 0)
+	points = append(points, &imagemodel.Point{})
+	var p *imagemodel.Point
+	for i := 0; i < len(imPoints.Points); i++ {
+		if i%2 == 0 {
+			x := imPoints.Points[i]
+			p = &imagemodel.Point{
+				X: x,
+			}
+		}
+		if i%2 == 1 {
+			y := imPoints.Points[i]
+			p.Y = y
+			points = append(points, p)
+		}
+	}
+	fmt.Println(points)
+	var pRep *PointsRep
+	switch pointType {
+	case 5:
+		pRep = &PointsRep{
+			LeftEye:  []*imagemodel.Point{points[1]},
+			RightEye: []*imagemodel.Point{points[10]},
+			Nouse:    []*imagemodel.Point{points[35]},
+			Mouth:    []*imagemodel.Point{points[47], points[48]},
+		}
+		return pRep
+	case 27:
+		pRep = &PointsRep{
+			LeftEyeBrow:  []*imagemodel.Point{points[19], &imagemodel.Point{X: (points[21].X + points[22].X + points[23].X + points[24].X) / 4, Y: (points[21].Y + points[22].Y + points[23].Y + points[24].Y) / 4}, points[20]},
+			RightEyeBrow: []*imagemodel.Point{points[27], &imagemodel.Point{X: (points[31].X + points[32].X + points[29].X + points[30].X) / 4, Y: (points[31].Y + points[32].Y + points[29].Y + points[30].Y) / 4}, points[28]},
+			LeftEye:      []*imagemodel.Point{points[1], points[2], points[4], points[3], points[5]},
+			RightEye:     []*imagemodel.Point{points[10], points[11], points[13], points[12], points[14]},
+			Nouse:        []*imagemodel.Point{points[35], &imagemodel.Point{X: (points[37].X+points[38].X)/2 + (points[35].X-((points[37].X+points[38].X)/2))/3, Y: (points[37].Y+points[38].Y)/2 + (points[35].Y-((points[37].Y+points[38].Y)/2))/3}, points[41], points[36], points[42]},
+			Mouth:        []*imagemodel.Point{points[47], points[48], points[49], points[50], points[59], points[60]},
+		}
+		return pRep
+	case 68:
+		pRep = &PointsRep{
+			LeftEyeBrow:  []*imagemodel.Point{points[19], &imagemodel.Point{X: (points[21].X + points[22].X + points[23].X + points[24].X) / 4, Y: (points[21].Y + points[22].Y + points[23].Y + points[24].Y) / 4}, points[20], &imagemodel.Point{X: (points[23].X + points[24].X) / 2, Y: (points[23].Y + points[24].Y) / 2}, &imagemodel.Point{X: (points[21].X + points[22].X) / 2, Y: (points[21].Y + points[22].Y) / 2}},
+			RightEyeBrow: []*imagemodel.Point{points[27], &imagemodel.Point{X: (points[31].X + points[32].X + points[29].X + points[30].X) / 4, Y: (points[31].Y + points[32].Y + points[29].Y + points[30].Y) / 4}, points[28], &imagemodel.Point{X: (points[31].X + points[32].X) / 2, Y: (points[31].Y + points[32].Y) / 2}, &imagemodel.Point{X: (points[29].X + points[30].X) / 2, Y: (points[29].Y + points[30].Y) / 2}},
+			LeftEye:      []*imagemodel.Point{points[1], points[2], points[4], points[3], points[5], points[6], points[8], points[9], points[7]},
+			RightEye:     []*imagemodel.Point{points[10], points[11], points[13], points[12], points[14], points[15], points[17], points[18], points[16]},
+			Nouse:        []*imagemodel.Point{points[35], &imagemodel.Point{X: (points[37].X+points[38].X)/2 + (points[35].X-((points[37].X+points[38].X)/2))/3, Y: (points[37].Y+points[38].Y)/2 + (points[35].Y-((points[37].Y+points[38].Y)/2))/3}, points[41], points[36], points[42], &imagemodel.Point{X: (points[37].X + points[38].X) / 2, Y: (points[37].Y + points[38].Y) / 2}, &imagemodel.Point{X: (points[37].X+points[38].X)/2 + 2*(points[35].X-((points[37].X+points[38].X)/2))/3, Y: (points[37].Y+points[38].Y)/2 + 2*(points[35].Y-((points[37].Y+points[38].Y)/2))/3}, points[43], points[44]},
+			Mouth:        []*imagemodel.Point{points[47], points[48], points[49], points[50], points[59], points[60], points[51], points[64], points[62], points[61], points[53], points[54], points[66], points[63]},
+			Face:         []*imagemodel.Point{points[79], points[80], points[81], points[82], points[83], points[84], points[85], points[86], points[87], points[88], points[89], points[90], points[91], points[92], points[93], points[94], points[95]},
+		}
+		return pRep
+	case 83:
+		pRep = &PointsRep{
+			LeftEyeBrow:  []*imagemodel.Point{points[19], &imagemodel.Point{X: (points[21].X + points[22].X + points[23].X + points[24].X) / 4, Y: (points[21].Y + points[22].Y + points[23].Y + points[24].Y) / 4}, points[20], &imagemodel.Point{X: (points[23].X + points[24].X) / 2, Y: (points[23].Y + points[24].Y) / 2}, &imagemodel.Point{X: (points[21].X + points[22].X) / 2, Y: (points[21].Y + points[22].Y) / 2}, points[21], points[23], points[25], points[26], points[24]},
+			RightEyeBrow: []*imagemodel.Point{points[27], &imagemodel.Point{X: (points[31].X + points[32].X + points[29].X + points[30].X) / 4, Y: (points[31].Y + points[32].Y + points[29].Y + points[30].Y) / 4}, points[28], &imagemodel.Point{X: (points[31].X + points[32].X) / 2, Y: (points[31].Y + points[32].Y) / 2}, &imagemodel.Point{X: (points[29].X + points[30].X) / 2, Y: (points[29].Y + points[30].Y) / 2}, points[29], points[31], points[33], points[34], points[32]},
+			LeftEye:      []*imagemodel.Point{points[1], points[2], points[4], points[3], points[5], points[6], points[8], points[9], points[7]},
+			RightEye:     []*imagemodel.Point{points[10], points[11], points[13], points[12], points[14], points[15], points[17], points[18], points[16]},
+			Nouse:        []*imagemodel.Point{points[35], &imagemodel.Point{X: (points[37].X+points[38].X)/2 + (points[35].X-((points[37].X+points[38].X)/2))/3, Y: (points[37].Y+points[38].Y)/2 + (points[35].Y-((points[37].Y+points[38].Y)/2))/3}, points[41], points[36], points[42], &imagemodel.Point{X: (points[37].X + points[38].X) / 2, Y: (points[37].Y + points[38].Y) / 2}, &imagemodel.Point{X: (points[37].X+points[38].X)/2 + 2*(points[35].X-((points[37].X+points[38].X)/2))/3, Y: (points[37].Y+points[38].Y)/2 + 2*(points[35].Y-((points[37].Y+points[38].Y)/2))/3}, points[43], points[44], points[39], points[40]},
+			Mouth:        []*imagemodel.Point{points[47], points[48], points[49], points[50], points[59], points[60], points[51], points[52], points[65], points[64], points[57], points[58], points[62], points[61], points[53], points[54], &imagemodel.Point{X: (points[50].X + points[59].X) / 2, Y: (points[50].Y + points[59].Y) / 2}},
+			Face:         []*imagemodel.Point{points[79], points[80], points[81], points[82], points[83], points[84], points[85], points[86], points[87], points[88], points[89], points[90], points[91], points[92], points[93], points[94], points[95]},
+		}
+		return pRep
+	case 95:
+		pRep = &PointsRep{
+			LeftEyeBrow:  []*imagemodel.Point{points[19], &imagemodel.Point{X: (points[21].X + points[22].X + points[23].X + points[24].X) / 4, Y: (points[21].Y + points[22].Y + points[23].Y + points[24].Y) / 4}, points[20], &imagemodel.Point{X: (points[23].X + points[24].X) / 2, Y: (points[23].Y + points[24].Y) / 2}, &imagemodel.Point{X: (points[21].X + points[22].X) / 2, Y: (points[21].Y + points[22].Y) / 2}, points[21], points[23], points[25], points[26], points[24]},
+			RightEyeBrow: []*imagemodel.Point{points[27], &imagemodel.Point{X: (points[31].X + points[32].X + points[29].X + points[30].X) / 4, Y: (points[31].Y + points[32].Y + points[29].Y + points[30].Y) / 4}, points[28], &imagemodel.Point{X: (points[31].X + points[32].X) / 2, Y: (points[31].Y + points[32].Y) / 2}, &imagemodel.Point{X: (points[29].X + points[30].X) / 2, Y: (points[29].Y + points[30].Y) / 2}, points[29], points[31], points[33], points[34], points[32]},
+			LeftEye:      []*imagemodel.Point{points[1], points[2], points[4], points[3], points[5], points[6], points[8], points[9], points[7]},
+			RightEye:     []*imagemodel.Point{points[10], points[11], points[13], points[12], points[14], points[15], points[17], points[18], points[16]},
+			LeftEar:      []*imagemodel.Point{points[76], points[72], points[73], points[74], points[78]},
+			RightEar:     []*imagemodel.Point{points[75], points[69], points[70], points[71], points[77]},
+			Nouse:        []*imagemodel.Point{points[35], &imagemodel.Point{X: (points[37].X+points[38].X)/2 + (points[35].X-((points[37].X+points[38].X)/2))/3, Y: (points[37].Y+points[38].Y)/2 + (points[35].Y-((points[37].Y+points[38].Y)/2))/3}, points[41], points[36], points[42], &imagemodel.Point{X: (points[37].X + points[38].X) / 2, Y: (points[37].Y + points[38].Y) / 2}, &imagemodel.Point{X: (points[37].X+points[38].X)/2 + 2*(points[35].X-((points[37].X+points[38].X)/2))/3, Y: (points[37].Y+points[38].Y)/2 + 2*(points[35].Y-((points[37].Y+points[38].Y)/2))/3}, points[43], points[44], points[39], points[40]},
+			Mouth:        []*imagemodel.Point{points[47], points[48], points[49], points[50], points[59], points[60], points[51], points[52], points[65], points[64], points[57], points[58], points[62], points[61], points[53], points[54], &imagemodel.Point{X: (points[50].X + points[59].X) / 2, Y: (points[50].Y + points[59].Y) / 2}, points[66], points[63]},
+			Face:         []*imagemodel.Point{points[79], points[80], points[81], points[82], points[83], points[84], points[85], points[86], points[87], points[88], points[89], points[90], points[91], points[92], points[93], points[94], points[95]},
+		}
+		return pRep
+	}
+
+	return pRep
 }
 
 func SwitchNinePoint(pointType int64, image *imagemodel.ImageModel) *PointsRep {
@@ -275,8 +374,7 @@ func faceResSwitchPoint(pointType int64, image *imagemodel.ImageModel) *PointsRe
 			&imagemodel.Point{X: landmark["left_eye_lower_left_quarter"].X, Y: landmark["left_eye_lower_left_quarter"].Y},
 		},
 		RightEye: []*imagemodel.Point{
-
-			&imagemodel.Point{X: landmark["right_eye_center"].X, Y: landmark["right_eye_center"].Y},
+			&imagemodel.Point{X: landmark["right_eye_pupil"].X, Y: landmark["right_eye_pupil"].Y},
 			&imagemodel.Point{X: landmark["right_eye_left_corner"].X, Y: landmark["right_eye_left_corner"].Y},
 			&imagemodel.Point{X: landmark["right_eye_top"].X, Y: landmark["right_eye_top"].Y},
 			&imagemodel.Point{X: landmark["right_eye_right_corner"].X, Y: landmark["right_eye_right_corner"].Y},
@@ -346,15 +444,53 @@ func faceResSwitchPoint(pointType int64, image *imagemodel.ImageModel) *PointsRe
 		return SwitchNilPoint(pointType)
 	}
 
-	if pointType == 95 {
+	pRepre := &PointsRep{}
+	switch pointType {
+	case 5:
+		pRepre.LeftEye = append(pRepre.LeftEye, pRep.LeftEye[0])
+		pRepre.RightEye = append(pRepre.RightEye, pRep.RightEye[0])
+		pRepre.Nouse = append(pRepre.Nouse, pRep.Nouse[0])
+		pRepre.Mouth = pRep.Mouth[0:2]
+		return pRepre
+	case 27:
+		pRepre.LeftEyeBrow = pRep.LeftEyeBrow[0:3]
+		pRepre.RightEyeBrow = pRep.RightEyeBrow[0:3]
+		pRepre.LeftEye = pRep.LeftEye[0:5]
+		pRepre.RightEye = pRep.RightEye[0:5]
+		pRepre.Nouse = pRep.Nouse[0:5]
+		pRepre.Mouth = pRep.Mouth[0:6]
+		return pRepre
+	case 68:
+		pRepre.LeftEyeBrow = pRep.LeftEyeBrow[0:5]
+		pRepre.RightEyeBrow = pRep.RightEyeBrow[0:5]
+		pRepre.LeftEye = pRep.LeftEye[0:9]
+		pRepre.RightEye = pRep.RightEye[0:9]
+		pRepre.Nouse = pRep.Nouse[0:9]
+		pRepre.Mouth = pRep.Mouth[0:6]
+		pRepre.Mouth = append(pRepre.Mouth, pRep.Mouth[6])
+		pRepre.Mouth = append(pRepre.Mouth, pRep.Mouth[9])
+		pRep.Mouth = append(pRep.Mouth, &imagemodel.Point{X: landmark["mouth_lower_lip_right_contour2"].X, Y: landmark["mouth_lower_lip_right_contour2"].Y})
+		pRep.Mouth = append(pRep.Mouth, &imagemodel.Point{X: landmark["mouth_lower_lip_left_contour2"].X, Y: landmark["mouth_lower_lip_left_contour2"].Y})
+		pRepre.Mouth = append(pRepre.Mouth, pRep.Mouth[12])
+		pRepre.Mouth = append(pRepre.Mouth, pRep.Mouth[13])
+		pRepre.Mouth = append(pRepre.Mouth, pRep.Mouth[14])
+		pRepre.Mouth = append(pRepre.Mouth, pRep.Mouth[15])
+		pRepre.Face = pRep.Face
+		return pRepre
+	case 83:
+		pRepre = pRep
+		return pRepre
+	case 95:
 		pRep.Mouth = append(pRep.Mouth, &imagemodel.Point{X: landmark["mouth_lower_lip_right_contour2"].X, Y: landmark["mouth_lower_lip_right_contour2"].Y})
 		pRep.Mouth = append(pRep.Mouth, &imagemodel.Point{X: landmark["mouth_lower_lip_left_contour2"].X, Y: landmark["mouth_lower_lip_left_contour2"].Y})
 		pp := SwitchNilPoint(pointType)
 		pRep.LeftEar = pp.LeftEar
 		pRep.RightEar = pp.RightEar
+		pRepre = pRep
+		return pRepre
 	}
 
-	return pRep
+	return pRepre
 }
 
 func ThrResults(pointType int64, image *imagemodel.ImageModel) []*ThrResRep {
@@ -1002,8 +1138,34 @@ func SwitchNilPoint(pointType int64) *PointsRep {
 
 	switch pointType {
 	case 5:
+		pRep := &PointsRep{
+			LeftEye:  []*imagemodel.Point{points[1]},
+			RightEye: []*imagemodel.Point{points[10]},
+			Nouse:    []*imagemodel.Point{points[35]},
+			Mouth:    []*imagemodel.Point{points[47], points[48]},
+		}
+		return pRep
 	case 27:
+		pRep := &PointsRep{
+			LeftEyeBrow:  []*imagemodel.Point{points[19], &imagemodel.Point{X: (points[21].X + points[22].X + points[23].X + points[24].X) / 4, Y: (points[21].Y + points[22].Y + points[23].Y + points[24].Y) / 4}, points[20]},
+			RightEyeBrow: []*imagemodel.Point{points[27], &imagemodel.Point{X: (points[31].X + points[32].X + points[29].X + points[30].X) / 4, Y: (points[31].Y + points[32].Y + points[29].Y + points[30].Y) / 4}, points[28]},
+			LeftEye:      []*imagemodel.Point{points[1], points[2], points[4], points[3], points[5]},
+			RightEye:     []*imagemodel.Point{points[10], points[11], points[13], points[12], points[14]},
+			Nouse:        []*imagemodel.Point{points[35], &imagemodel.Point{X: (points[37].X+points[38].X)/2 + (points[35].X-((points[37].X+points[38].X)/2))/3, Y: (points[37].Y+points[38].Y)/2 + (points[35].Y-((points[37].Y+points[38].Y)/2))/3}, points[41], points[36], points[42]},
+			Mouth:        []*imagemodel.Point{points[47], points[48], points[49], points[50], points[59], points[60]},
+		}
+		return pRep
 	case 68:
+		pRep := &PointsRep{
+			LeftEyeBrow:  []*imagemodel.Point{points[19], &imagemodel.Point{X: (points[21].X + points[22].X + points[23].X + points[24].X) / 4, Y: (points[21].Y + points[22].Y + points[23].Y + points[24].Y) / 4}, points[20], &imagemodel.Point{X: (points[23].X + points[24].X) / 2, Y: (points[23].Y + points[24].Y) / 2}, &imagemodel.Point{X: (points[21].X + points[22].X) / 2, Y: (points[21].Y + points[22].Y) / 2}},
+			RightEyeBrow: []*imagemodel.Point{points[27], &imagemodel.Point{X: (points[31].X + points[32].X + points[29].X + points[30].X) / 4, Y: (points[31].Y + points[32].Y + points[29].Y + points[30].Y) / 4}, points[28], &imagemodel.Point{X: (points[31].X + points[32].X) / 2, Y: (points[31].Y + points[32].Y) / 2}, &imagemodel.Point{X: (points[29].X + points[30].X) / 2, Y: (points[29].Y + points[30].Y) / 2}},
+			LeftEye:      []*imagemodel.Point{points[1], points[2], points[4], points[3], points[5], points[6], points[8], points[9], points[7]},
+			RightEye:     []*imagemodel.Point{points[10], points[11], points[13], points[12], points[14], points[15], points[17], points[18], points[16]},
+			Nouse:        []*imagemodel.Point{points[35], &imagemodel.Point{X: (points[37].X+points[38].X)/2 + (points[35].X-((points[37].X+points[38].X)/2))/3, Y: (points[37].Y+points[38].Y)/2 + (points[35].Y-((points[37].Y+points[38].Y)/2))/3}, points[41], points[36], points[42], &imagemodel.Point{X: (points[37].X + points[38].X) / 2, Y: (points[37].Y + points[38].Y) / 2}, &imagemodel.Point{X: (points[37].X+points[38].X)/2 + 2*(points[35].X-((points[37].X+points[38].X)/2))/3, Y: (points[37].Y+points[38].Y)/2 + 2*(points[35].Y-((points[37].Y+points[38].Y)/2))/3}, points[43], points[44]},
+			Mouth:        []*imagemodel.Point{points[47], points[48], points[49], points[50], points[59], points[60], points[51], points[64], points[62], points[61], points[53], points[54], points[66], points[63]},
+			Face:         []*imagemodel.Point{points[79], points[80], points[81], points[82], points[83], points[84], points[85], points[86], points[87], points[88], points[89], points[90], points[91], points[92], points[93], points[94], points[95]},
+		}
+		return pRep
 	case 83:
 		pRep := &PointsRep{
 			LeftEyeBrow:  []*imagemodel.Point{points[19], &imagemodel.Point{X: (points[21].X + points[22].X + points[23].X + points[24].X) / 4, Y: (points[21].Y + points[22].Y + points[23].Y + points[24].Y) / 4}, points[20], &imagemodel.Point{X: (points[23].X + points[24].X) / 2, Y: (points[23].Y + points[24].Y) / 2}, &imagemodel.Point{X: (points[21].X + points[22].X) / 2, Y: (points[21].Y + points[22].Y) / 2}, points[21], points[23], points[25], points[26], points[24]},

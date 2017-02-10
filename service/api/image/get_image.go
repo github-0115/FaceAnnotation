@@ -54,24 +54,24 @@ func GetImage(c *gin.Context) {
 	)
 	//fineTune
 	if strings.EqualFold(userColl.Identity, usermodel.UserIdentity.FineTune) && strings.EqualFold(smallTaskModel.Areas, usermodel.UserIdentity.FineTune) {
+		// already get image
+		//		imageModel, err = getTimeOutFineImage(username, smallTaskId, smallTaskModel.PointType)
+		//		if imageModel != nil {
+		//			pRep = fineTuneSwitchPoint(smallTaskModel.PointType, imageModel)
+		//			rep := &ImageRep{
+		//				SmallTaskId: smallTaskId,
+		//				Md5:         imageModel.Md5,
+		//				PointsRep:   pRep,
+		//				PointType:   smallTaskModel.PointType,
+		//				Areas:       smallTaskModel.Areas,
+		//			}
 
-		imageModel, err = getTimeOutFineImage(username, smallTaskId, smallTaskModel.PointType)
-		if imageModel != nil {
-			pRep = fineTuneSwitchPoint(smallTaskModel.PointType, imageModel)
-			rep := &ImageRep{
-				SmallTaskId: smallTaskId,
-				Md5:         imageModel.Md5,
-				PointsRep:   pRep,
-				PointType:   smallTaskModel.PointType,
-				Areas:       smallTaskModel.Areas,
-			}
-
-			c.JSON(200, gin.H{
-				"code": 0,
-				"res":  rep,
-			})
-			return
-		}
+		//			c.JSON(200, gin.H{
+		//				"code": 0,
+		//				"res":  rep,
+		//			})
+		//			return
+		//		}
 
 		//All images to get the small task
 		imageList, err := imagemodel.GetSmallTaskImages(smallTaskModel.SmallTaskImages)
@@ -141,26 +141,26 @@ func GetImage(c *gin.Context) {
 		}
 
 	} else {
+		// already get image
+		//		imageModel, err = getTimeOutImage(username, smallTaskId, smallTaskModel.Areas, smallTaskModel.PointType)
 
-		imageModel, err = getTimeOutImage(username, smallTaskId, smallTaskModel.Areas, smallTaskModel.PointType)
+		//		if imageModel != nil {
+		//			pRep = SwitchPoint(smallTaskModel.PointType, imageModel)
+		//			rep := &ImageRep{
+		//				SmallTaskId: smallTaskId,
+		//				Md5:         imageModel.Md5,
+		//				PointsRep:   pRep,
+		//				PointType:   smallTaskModel.PointType,
+		//				Areas:       smallTaskModel.Areas,
+		//			}
 
-		if imageModel != nil {
-			pRep = SwitchPoint(smallTaskModel.PointType, imageModel)
-			rep := &ImageRep{
-				SmallTaskId: smallTaskId,
-				Md5:         imageModel.Md5,
-				PointsRep:   pRep,
-				PointType:   smallTaskModel.PointType,
-				Areas:       smallTaskModel.Areas,
-			}
+		//			c.JSON(200, gin.H{
+		//				"code": 0,
+		//				"res":  rep,
+		//			})
 
-			c.JSON(200, gin.H{
-				"code": 0,
-				"res":  rep,
-			})
-
-			return
-		}
+		//			return
+		//		}
 
 		//All images to get the small task
 		imageList, err := imagemodel.GetSmallTaskImages(smallTaskModel.SmallTaskImages)

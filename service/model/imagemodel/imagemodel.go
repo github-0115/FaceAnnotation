@@ -210,6 +210,23 @@ func UpsertImageModel(res *ImageModel) (bool, error) {
 	return true, nil
 }
 
+func DeleteTaskImage(id string, md5 string) (bool, error) {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	err := s.DB(db.Face.DB).C("image").Update(bson.M{
+		"md5": md5,
+	}, bson.M{"$pull": bson.M{"task_id": id}})
+	if err != nil {
+		log.Error(fmt.Sprintf("update image taskId err ", err))
+		if err == mgo.ErrNotFound {
+			return false, ErrImageModelNotFound
+		}
+		return false, ErrImageModelCursor
+	}
+	return true, nil
+}
+
 func GetImageList(dirPth string) (files []string, err error) {
 	err = filepath.Walk(dirPth, func(filename string, fi os.FileInfo, err error) error { //遍历目录
 		if err != nil {

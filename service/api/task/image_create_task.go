@@ -94,6 +94,7 @@ func ImageCreateTask(c *gin.Context) {
 
 	//create smalltask
 	stms := make([]*smalltaskmodel.SmallTaskModel, 0, 0)
+	fmt.Println(math.Ceil(float64(len(imagetaskColl.Images)) / float64(taskColl.MinUnit)))
 	for i := 0; i < int(math.Ceil(float64(len(imagetaskColl.Images))/float64(taskColl.MinUnit))); i++ {
 		for _, res := range taskColl.Area {
 			stm := &smalltaskmodel.SmallTaskModel{

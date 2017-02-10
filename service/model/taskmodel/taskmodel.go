@@ -178,6 +178,27 @@ func UpdateTaskImageStatus(title string, url string, status int64) error {
 	return nil
 }
 
+func UpdateTaskCount(taskId string, count int64) error {
+
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	err := s.DB(db.Face.DB).C("task").Update(bson.M{
+		"task_id": taskId,
+	}, bson.M{"$set": bson.M{"count": count}})
+
+	if err != nil {
+		log.Error(fmt.Sprintf("update task status err ", err))
+		if err == mgo.ErrNotFound {
+			return ErrTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return ErrTaskModelCursor
+		}
+		return err
+	}
+	return nil
+}
+
 func RemoveTask(taskId string) error {
 	s := db.Face.GetSession()
 	defer s.Close()

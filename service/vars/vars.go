@@ -37,10 +37,10 @@ var (
 	ErrImageModelUpdate   = &Err{704, "image model update err"}
 	ErrImportImageParmars = &Err{705, "import image parmars err"}
 	ErrNoValidDataExport  = &Err{706, "No valid data can be exported"}
-	ErrExportParmars      = &Err{707, "exported Parmars err"}
+	ErrNotImage           = &Err{707, "Under the task gets no pictures error"}
 	ErrExportNotFound     = &Err{708, "exported not found err"}
 	ErrReadImage          = &Err{709, "read image error"}
-	ErrNotImage           = &Err{710, "Under the task gets no pictures error"}
+	ErrExportParmars      = &Err{710, "exported Parmars err"}
 	ErrSmallTaskSave      = &Err{800, "create small task save err"}
 	ErrSmallTaskNotFound  = &Err{801, "small task not found err"}
 	ErrNotSmallTask       = &Err{802, "not small task err"}

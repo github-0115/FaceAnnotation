@@ -8,6 +8,7 @@ import (
 	loginendpoint "FaceAnnotation/service/api/login"
 	smalltaskendpoint "FaceAnnotation/service/api/small_task"
 	taskendpoint "FaceAnnotation/service/api/task"
+	thrResultendpoint "FaceAnnotation/service/api/thr_result"
 	userendpoint "FaceAnnotation/service/api/user"
 	middleware "FaceAnnotation/service/middleware"
 	"flag"
@@ -65,6 +66,7 @@ func main() {
 		imagegroup.POST("save_image", imageendpoint.SaveImageRes)
 		imagegroup.POST("import_image", dataendpoint.ImportImage)
 		imagegroup.POST("import_images", dataendpoint.ImportImages)
+		imagegroup.DELETE("delete_image", imageendpoint.DeleteImage)
 		imagegroup.POST("import_res", dataendpoint.ImportResult)
 		imagegroup.POST("export_data", exportendpoint.ExportData)
 		imagegroup.PUT("remove_data", exportendpoint.RemoveExportData)
@@ -89,6 +91,12 @@ func main() {
 		taskgroup.GET("small_image_list", smalltaskendpoint.GetSmallTaskImages)
 		taskgroup.POST("create_task", taskendpoint.CreateTask)
 		taskgroup.GET("task_list", taskendpoint.TaskList)
+	}
+
+	thrgroup := r.Group("/thr")
+	thrgroup.Use(middleware.AuthToken)
+	{
+		thrgroup.GET("face_res", thrResultendpoint.GetFaceResult)
 	}
 
 	if *debug == false {

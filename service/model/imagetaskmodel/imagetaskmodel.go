@@ -144,6 +144,46 @@ func UpdateImageTaskIntroduce(imagetaskId string, introduce string) error {
 	return nil
 }
 
+func PullImageTaskImages(imageTaskid string, md5 string) error {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	err := s.DB(db.Face.DB).C("image_task").Update(bson.M{
+		"image_task_id": imageTaskid,
+	}, bson.M{"$pull": bson.M{"images": md5}})
+
+	if err != nil {
+		log.Error(fmt.Sprintf("remove task image err ", err))
+		if err == mgo.ErrNotFound {
+			return ErrImageTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return ErrImageTaskModelCursor
+		}
+		return err
+	}
+	return nil
+}
+
+func PullImageTaskId(imageTaskid string, taskid string) error {
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	err := s.DB(db.Face.DB).C("image_task").Update(bson.M{
+		"image_task_id": imageTaskid,
+	}, bson.M{"$pull": bson.M{"task_id": taskid}})
+
+	if err != nil {
+		log.Error(fmt.Sprintf("remove small task err ", err))
+		if err == mgo.ErrNotFound {
+			return ErrImageTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return ErrImageTaskModelCursor
+		}
+		return err
+	}
+	return nil
+}
+
 func RemoveImageTask(taskId string) error {
 	s := db.Face.GetSession()
 	defer s.Close()
