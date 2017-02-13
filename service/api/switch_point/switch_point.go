@@ -58,7 +58,7 @@ type ThrResRep struct {
 }
 
 func SwitchAlreadyPoint(pointType int64, image *imagemodel.ImageModel) *PointsRep {
-	log.Info(fmt.Sprintf("image = %s switch 83 point", image.Md5))
+	log.Info(fmt.Sprintf("image = %s switch already point", image.Md5))
 
 	fineCount, fineres := getFineTuneRes(image)
 	var finepRep *PointsRep
@@ -92,17 +92,18 @@ func SwitchAlreadyPoint(pointType int64, image *imagemodel.ImageModel) *PointsRe
 		}
 		finepRep = pRep
 	}
-
+	fmt.Println("finepRep", finepRep)
 	//import point
 	_, thrRes := getImportPoint(pointType, image)
 	if thrRes == nil {
+		fmt.Println("finepRep", finepRep)
 		//face++ point
 		_, thrRes = faceResSwitchPoint(pointType, image)
 	}
-
+	fmt.Println("thrRes", thrRes)
 	// nil
 	nilRep := SwitchNilPoint(pointType)
-
+	fmt.Println("nilRep", nilRep)
 	if finepRep == nil && thrRes == nil {
 		return nilRep
 	}
@@ -963,6 +964,44 @@ func faceResSwitchPoint(pointType int64, image *imagemodel.ImageModel) (int, *Po
 	}
 
 	return int(pointType), pRepre
+}
+
+func FineTuneSwitchPoint(pointType int64, image *imagemodel.ImageModel) *PointsRep {
+	log.Info(fmt.Sprintf("image fineTune = %s switch point", image.Md5))
+	if image.Results[strconv.Itoa(int(pointType))] == nil {
+		log.Info(fmt.Sprintf("image  = %s switch point", image.Md5))
+		return SwitchAlreadyPoint(pointType, image)
+	}
+	log.Info(fmt.Sprintf("image fineTune = %s switch point", image.Md5))
+	var areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "leftEar", "rightEar", "mouth", "nouse", "face"}
+	pRep := &PointsRep{}
+	for _, area := range areas {
+		if image.Results[strconv.Itoa(int(pointType))][area] != nil {
+			//
+			switch area {
+			case "leftEyebrow":
+				pRep.LeftEyeBrow = image.Results[strconv.Itoa(int(pointType))][area][0].Points
+			case "rightEyebrow":
+				pRep.RightEyeBrow = image.Results[strconv.Itoa(int(pointType))][area][0].Points
+			case "leftEye":
+				pRep.LeftEye = image.Results[strconv.Itoa(int(pointType))][area][0].Points
+			case "rightEye":
+				pRep.RightEye = image.Results[strconv.Itoa(int(pointType))][area][0].Points
+			case "leftEar":
+				pRep.LeftEar = image.Results[strconv.Itoa(int(pointType))][area][0].Points
+			case "rightEar":
+				pRep.RightEar = image.Results[strconv.Itoa(int(pointType))][area][0].Points
+			case "mouth":
+				pRep.Mouth = image.Results[strconv.Itoa(int(pointType))][area][0].Points
+			case "nouse":
+				pRep.Nouse = image.Results[strconv.Itoa(int(pointType))][area][0].Points
+			case "face":
+				pRep.Face = image.Results[strconv.Itoa(int(pointType))][area][0].Points
+			}
+		}
+	}
+	fmt.Println(pRep)
+	return pRep
 }
 
 func SwitchNilPoint(pointType int64) *PointsRep {

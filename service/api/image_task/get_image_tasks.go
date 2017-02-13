@@ -33,6 +33,7 @@ type TwoChildren struct {
 	Children    []*ThreeChildren `json:"children"`
 	Situation   string           `json:"situation"`
 	Description string           `json:"description"`
+	PointType   string           `json:"point_type"`
 	LimitCount  int64            `json:"limit_count"`
 	Status      int64            `json:"status"`
 	CreatedAt   string           `json:"created_at"`
@@ -120,8 +121,9 @@ func ImageTaskList(c *gin.Context) {
 				Mark:        "two",
 				LimitCount:  task.LimitUser,
 				TaskId:      task.TaskId,
-				Situation:   strconv.Itoa(0) + "/" + strconv.Itoa(len(imageTasks[i].Images)),
-				Description: strconv.Itoa(int(task.PointType)),
+				Situation:   strconv.Itoa(0) + "/" + strconv.Itoa(int(task.Count)),
+				Description: strconv.Itoa(int(task.PointType)) + "-" + task.Introduce,
+				PointType:   strconv.Itoa(int(task.PointType)),
 				Status:      task.Status,
 				CreatedAt:   task.CreatedAt.Format("2006-01-02 03:04:05"),
 			}

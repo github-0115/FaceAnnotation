@@ -51,19 +51,6 @@ func ImageCreateTask(c *gin.Context) {
 		return
 	}
 
-	taskId := uuid.NewV4().String()
-	taskColl, err := taskmodel.QueryTask(taskId)
-	if err != nil {
-		if err != taskmodel.ErrTaskModelNotFound {
-			log.Error(fmt.Sprintf("task create err", err.Error()))
-			c.JSON(400, gin.H{
-				"code":    vars.ErrTaskExist.Code,
-				"message": vars.ErrTaskExist.Msg,
-			})
-			return
-		}
-	}
-
 	var areas []string
 	switch pointType {
 	case 5:
@@ -80,85 +67,177 @@ func ImageCreateTask(c *gin.Context) {
 		areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "leftEar", "rightEar", "mouth", "nouse", "face"}
 	}
 
-	taskColl = &taskmodel.TaskModel{
-		TaskId:    taskId,
-		Area:      areas,
-		MinUnit:   minUnit,
-		PointType: pointType,
-		LimitUser: limitUser,
-		Count:     int64(len(imagetaskColl.Images)),
-		Introduce: introduce,
-		Status:    0,
-		CreatedAt: time.Now(),
-	}
+	tasks := make([]*taskmodel.TaskModel, 0, 0)
+	for i := 0; i < int(math.Ceil(float64(len(imagetaskColl.Images))/float64(minUnit))); i++ {
 
-	//create smalltask
-	stms := make([]*smalltaskmodel.SmallTaskModel, 0, 0)
-	fmt.Println(math.Ceil(float64(len(imagetaskColl.Images)) / float64(taskColl.MinUnit)))
-	for i := 0; i < int(math.Ceil(float64(len(imagetaskColl.Images))/float64(taskColl.MinUnit))); i++ {
+		taskId := uuid.NewV4().String()
+		taskColl, err := taskmodel.QueryTask(taskId)
+		if err != nil {
+			if err != taskmodel.ErrTaskModelNotFound {
+				log.Error(fmt.Sprintf("task create err", err.Error()))
+				c.JSON(400, gin.H{
+					"code":    vars.ErrTaskExist.Code,
+					"message": vars.ErrTaskExist.Msg,
+				})
+				return
+			}
+		}
+
+		taskColl = &taskmodel.TaskModel{
+			TaskId:    taskId,
+			Area:      areas,
+			MinUnit:   minUnit,
+			PointType: pointType,
+			LimitUser: limitUser,
+			Introduce: introduce + "-" + strconv.Itoa(i+1),
+			Status:    0,
+			CreatedAt: time.Now(),
+		}
+		var images []string
+		if (i+1)*int(taskColl.MinUnit) > len(imagetaskColl.Images) {
+			taskColl.Count = int64(len(imagetaskColl.Images) - i*int(minUnit))
+			images = imagetaskColl.Images[i*int(minUnit) : len(imagetaskColl.Images)]
+		} else {
+			taskColl.Count = minUnit
+			images = imagetaskColl.Images[i*int(minUnit) : (i+1)*int(minUnit)]
+		}
+
+		stms := make([]*smalltaskmodel.SmallTaskModel, 0, 0)
 		for _, res := range taskColl.Area {
 			stm := &smalltaskmodel.SmallTaskModel{
-				TaskId:      taskId,
-				SmallTaskId: uuid.NewV4().String(),
-				PointType:   taskColl.PointType,
-				Areas:       res,
-				LimitCount:  taskColl.LimitUser,
-				Status:      0,
-				CreatedAt:   time.Now(),
-			}
-
-			if (i+1)*int(taskColl.MinUnit) > len(imagetaskColl.Images) {
-				stm.SmallTaskImages = imagetaskColl.Images[i*int(taskColl.MinUnit) : len(imagetaskColl.Images)]
-			} else {
-				stm.SmallTaskImages = imagetaskColl.Images[i*int(taskColl.MinUnit) : (i+1)*int(taskColl.MinUnit)]
+				TaskId:          taskId,
+				SmallTaskId:     uuid.NewV4().String(),
+				SmallTaskImages: images,
+				PointType:       taskColl.PointType,
+				Areas:           res,
+				LimitCount:      taskColl.LimitUser,
+				Status:          0,
+				CreatedAt:       time.Now(),
 			}
 
 			stms = append(stms, stm)
 		}
-	}
 
-	err = saveSmallTask(stms)
-	if err != nil {
-		log.Error(fmt.Sprintf("create small task err %s", err))
-		c.JSON(400, gin.H{
-			"code":    vars.ErrSmallTaskSave.Code,
-			"message": vars.ErrSmallTaskSave.Msg,
-		})
-		return
-	}
-
-	for _, image := range imagetaskColl.Images {
-		err := imagemodel.UpdateImageModel(image, taskId)
+		err = saveSmallTask(stms)
 		if err != nil {
-			log.Error(fmt.Sprintf("update image=%s taskid err=%s", image, err.Error()))
+			log.Error(fmt.Sprintf("create small task err %s", err))
+			c.JSON(400, gin.H{
+				"code":    vars.ErrSmallTaskSave.Code,
+				"message": vars.ErrSmallTaskSave.Msg,
+			})
+			return
 		}
+
+		for _, image := range images {
+			err := imagemodel.UpdateImageModel(image, taskId)
+			if err != nil {
+				log.Error(fmt.Sprintf("update image=%s taskid err=%s", image, err.Error()))
+			}
+		}
+
+		err = imagetaskmodel.UpdateImageTaskTaskId(imagetaskColl.ImageTaskId, taskId)
+		if err != nil {
+			log.Error(fmt.Sprintf("image task update taskId err", err.Error()))
+			c.JSON(400, gin.H{
+				"code":    vars.ErrImageTaskNotFound.Code,
+				"message": vars.ErrImageTaskNotFound.Msg,
+			})
+			return
+		}
+
+		err = taskColl.Save()
+		if err != nil {
+			log.Error(fmt.Sprintf("task save err", err.Error()))
+			smalltaskmodel.RemoveSmallTask(taskColl.TaskId)
+			c.JSON(400, gin.H{
+				"code":    vars.ErrTaskSave.Code,
+				"message": vars.ErrTaskSave.Msg,
+			})
+			return
+		}
+
+		tasks = append(tasks, taskColl)
 	}
 
-	err = imagetaskmodel.UpdateImageTaskTaskId(imagetaskColl.ImageTaskId, taskId)
-	if err != nil {
-		log.Error(fmt.Sprintf("image task update taskId err", err.Error()))
-		c.JSON(400, gin.H{
-			"code":    vars.ErrImageTaskNotFound.Code,
-			"message": vars.ErrImageTaskNotFound.Msg,
-		})
-		return
-	}
+	//	taskColl = &taskmodel.TaskModel{
+	//		TaskId:    taskId,
+	//		Area:      areas,
+	//		MinUnit:   minUnit,
+	//		PointType: pointType,
+	//		LimitUser: limitUser,
+	//		Count:     int64(len(imagetaskColl.Images)),
+	//		Introduce: introduce,
+	//		Status:    0,
+	//		CreatedAt: time.Now(),
+	//	}
 
-	err = taskColl.Save()
-	if err != nil {
-		log.Error(fmt.Sprintf("task save err", err.Error()))
-		smalltaskmodel.RemoveSmallTask(taskColl.TaskId)
-		c.JSON(400, gin.H{
-			"code":    vars.ErrTaskSave.Code,
-			"message": vars.ErrTaskSave.Msg,
-		})
-		return
-	}
+	//	//create smalltask
+	//	stms := make([]*smalltaskmodel.SmallTaskModel, 0, 0)
+	//	fmt.Println(math.Ceil(float64(len(imagetaskColl.Images)) / float64(taskColl.MinUnit)))
+	//	for i := 0; i < int(math.Ceil(float64(len(imagetaskColl.Images))/float64(taskColl.MinUnit))); i++ {
+	//		for _, res := range taskColl.Area {
+	//			stm := &smalltaskmodel.SmallTaskModel{
+	//				TaskId:      taskId,
+	//				SmallTaskId: uuid.NewV4().String(),
+	//				PointType:   taskColl.PointType,
+	//				Areas:       res,
+	//				LimitCount:  taskColl.LimitUser,
+	//				Status:      0,
+	//				CreatedAt:   time.Now(),
+	//			}
+
+	//			if (i+1)*int(taskColl.MinUnit) > len(imagetaskColl.Images) {
+	//				stm.SmallTaskImages = imagetaskColl.Images[i*int(taskColl.MinUnit) : len(imagetaskColl.Images)]
+	//			} else {
+	//				stm.SmallTaskImages = imagetaskColl.Images[i*int(taskColl.MinUnit) : (i+1)*int(taskColl.MinUnit)]
+	//			}
+
+	//			stms = append(stms, stm)
+	//		}
+	//	}
+
+	//	err = saveSmallTask(stms)
+	//	if err != nil {
+	//		log.Error(fmt.Sprintf("create small task err %s", err))
+	//		c.JSON(400, gin.H{
+	//			"code":    vars.ErrSmallTaskSave.Code,
+	//			"message": vars.ErrSmallTaskSave.Msg,
+	//		})
+	//		return
+	//	}
+
+	//	for _, image := range imagetaskColl.Images {
+	//		err := imagemodel.UpdateImageModel(image, taskId)
+	//		if err != nil {
+	//			log.Error(fmt.Sprintf("update image=%s taskid err=%s", image, err.Error()))
+	//		}
+	//	}
+
+	//	err = imagetaskmodel.UpdateImageTaskTaskId(imagetaskColl.ImageTaskId, taskId)
+	//	if err != nil {
+	//		log.Error(fmt.Sprintf("image task update taskId err", err.Error()))
+	//		c.JSON(400, gin.H{
+	//			"code":    vars.ErrImageTaskNotFound.Code,
+	//			"message": vars.ErrImageTaskNotFound.Msg,
+	//		})
+	//		return
+	//	}
+
+	//	err = taskColl.Save()
+	//	if err != nil {
+	//		log.Error(fmt.Sprintf("task save err", err.Error()))
+	//		smalltaskmodel.RemoveSmallTask(taskColl.TaskId)
+	//		c.JSON(400, gin.H{
+	//			"code":    vars.ErrTaskSave.Code,
+	//			"message": vars.ErrTaskSave.Msg,
+	//		})
+	//		return
+	//	}
 
 	c.JSON(200, gin.H{
 		"code":    0,
-		"task_id": taskId,
-		"message": "create " + strconv.Itoa(len(stms)) + "small task success",
+		"task_id": tasks,
+		"message": "create " + strconv.Itoa(len(tasks)) + "small task success",
 	})
 }
 
