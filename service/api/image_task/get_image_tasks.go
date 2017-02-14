@@ -122,7 +122,7 @@ func ImageTaskList(c *gin.Context) {
 				LimitCount:  task.LimitUser,
 				TaskId:      task.TaskId,
 				Situation:   strconv.Itoa(0) + "/" + strconv.Itoa(int(task.Count)),
-				Description: strconv.Itoa(int(task.PointType)) + "-" + task.Introduce,
+				Description: task.Introduce,
 				PointType:   strconv.Itoa(int(task.PointType)),
 				Status:      task.Status,
 				CreatedAt:   task.CreatedAt.Format("2006-01-02 03:04:05"),

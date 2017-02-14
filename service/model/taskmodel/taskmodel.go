@@ -199,6 +199,27 @@ func UpdateTaskCount(taskId string, count int64) error {
 	return nil
 }
 
+func UpdateTaskIntroduce(taskId string, introduce string) error {
+
+	s := db.Face.GetSession()
+	defer s.Close()
+
+	err := s.DB(db.Face.DB).C("task").Update(bson.M{
+		"task_id": taskId,
+	}, bson.M{"$set": bson.M{"introduce": introduce}})
+
+	if err != nil {
+		log.Error(fmt.Sprintf("update task introduce err ", err))
+		if err == mgo.ErrNotFound {
+			return ErrTaskModelNotFound
+		} else if err == mgo.ErrCursor {
+			return ErrTaskModelCursor
+		}
+		return err
+	}
+	return nil
+}
+
 func RemoveTask(taskId string) error {
 	s := db.Face.GetSession()
 	defer s.Close()

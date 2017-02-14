@@ -56,7 +56,7 @@ func ImageCreateTask(c *gin.Context) {
 	case 5:
 		areas = []string{"leftEye", "rightEye", "mouth", "nouse"}
 	case 27:
-		areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "mouth", "nouse", "face"}
+		areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "mouth", "nouse"}
 	case 68:
 		areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "mouth", "nouse", "face"}
 	case 83:

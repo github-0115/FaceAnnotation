@@ -96,7 +96,7 @@ func SwitchAlreadyPoint(pointType int64, image *imagemodel.ImageModel) *PointsRe
 	//import point
 	_, thrRes := getImportPoint(pointType, image)
 	if thrRes == nil {
-		fmt.Println("finepRep", finepRep)
+		fmt.Println("thrRes", thrRes)
 		//face++ point
 		_, thrRes = faceResSwitchPoint(pointType, image)
 	}
@@ -159,6 +159,7 @@ func SwitchAlreadyPoint(pointType int64, image *imagemodel.ImageModel) *PointsRe
 			if thrRes == nil {
 				return nilRep
 			} else {
+				log.Info(fmt.Sprintf("image = %s switch already point%d mouth%s=", image.Md5, len(thrRes.Mouth), thrRes.Mouth))
 				return thrRes
 			}
 		} else {
@@ -226,6 +227,7 @@ func SwitchAlreadyPoint(pointType int64, image *imagemodel.ImageModel) *PointsRe
 }
 
 func switchFullPoint(fineCount int, pointType int64, finepRep *PointsRep) *PointsRep {
+	log.Info(fmt.Sprintf("image switch fine full point"))
 	pRep := &PointsRep{}
 	switch pointType {
 	case 5:
@@ -282,6 +284,7 @@ func switchFullPoint(fineCount int, pointType int64, finepRep *PointsRep) *Point
 }
 
 func switchNotFullPoint(fineCount int, pointType int64, finepRep *PointsRep, thrRes *PointsRep) *PointsRep {
+	log.Info(fmt.Sprintf("image switch not full point"))
 	pRep := &PointsRep{}
 	switch pointType {
 	case 5:
@@ -939,15 +942,7 @@ func faceResSwitchPoint(pointType int64, image *imagemodel.ImageModel) (int, *Po
 		pRepre.LeftEye = pRep.LeftEye[0:9]
 		pRepre.RightEye = pRep.RightEye[0:9]
 		pRepre.Nouse = pRep.Nouse[0:9]
-		pRepre.Mouth = pRep.Mouth[0:6]
-		pRepre.Mouth = append(pRepre.Mouth, pRep.Mouth[6])
-		pRepre.Mouth = append(pRepre.Mouth, pRep.Mouth[9])
-		pRep.Mouth = append(pRep.Mouth, &imagemodel.Point{X: landmark["mouth_lower_lip_right_contour2"].X, Y: landmark["mouth_lower_lip_right_contour2"].Y})
-		pRep.Mouth = append(pRep.Mouth, &imagemodel.Point{X: landmark["mouth_lower_lip_left_contour2"].X, Y: landmark["mouth_lower_lip_left_contour2"].Y})
-		pRepre.Mouth = append(pRepre.Mouth, pRep.Mouth[12])
-		pRepre.Mouth = append(pRepre.Mouth, pRep.Mouth[13])
-		pRepre.Mouth = append(pRepre.Mouth, pRep.Mouth[14])
-		pRepre.Mouth = append(pRepre.Mouth, pRep.Mouth[15])
+		pRepre.Mouth = pRep.Mouth[0:14]
 		pRepre.Face = pRep.Face
 		return int(pointType), pRepre
 	case 83:

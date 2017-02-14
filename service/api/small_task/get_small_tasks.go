@@ -120,22 +120,38 @@ func GetSmallTasks(c *gin.Context) {
 		return
 	}
 
-	var smallTaskId string
+	var (
+		smallTaskId string
+		count       int = 0
+	)
 	for {
 		smallTaskId, err = getTasksId(username, smalltaskList[r.Intn(len(smalltaskList))])
 		if err != nil {
 			log.Error(fmt.Sprintf("not small task to allot err %s", err))
 		}
+		count = count + 1
 		if !strings.EqualFold(smallTaskId, "") {
 			break
 		} else {
-			log.Error(fmt.Sprintf("not small task to allot err %s", err))
-			c.JSON(200, gin.H{
-				"code":    vars.ErrNotSmallTask.Code,
-				"message": vars.ErrNotSmallTask.Msg,
-			})
-			return
+			if count >= len(smalltaskList) {
+				break
+			}
+			//			log.Error(fmt.Sprintf("not small task to allot err %s", err))
+			//			c.JSON(200, gin.H{
+			//				"code":    vars.ErrNotSmallTask.Code,
+			//				"message": vars.ErrNotSmallTask.Msg,
+			//			})
+			//			return
 		}
+	}
+
+	if strings.EqualFold(smallTaskId, "") {
+		log.Error(fmt.Sprintf("not small task to allot err %s", err))
+		c.JSON(200, gin.H{
+			"code":    vars.ErrNotSmallTask.Code,
+			"message": vars.ErrNotSmallTask.Msg,
+		})
+		return
 	}
 
 	//	smallTaskId, err := getSmallTasksId(username, smalltaskList)

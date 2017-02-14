@@ -62,7 +62,8 @@ func main() {
 	imagegroup := r.Group("/image")
 	imagegroup.Use(middleware.AuthToken)
 	{
-		imagegroup.GET("get_one_image", imageendpoint.GetImage)
+		imagegroup.GET("get_one_image", imageendpoint.GetOneImage)
+		//		imagegroup.GET("get_image", imageendpoint.GetImage)
 		imagegroup.POST("save_image", imageendpoint.SaveImageRes)
 		imagegroup.POST("import_image", dataendpoint.ImportImage)
 		imagegroup.POST("import_images", dataendpoint.ImportImages)
@@ -80,6 +81,7 @@ func main() {
 		taskgroup.GET("all_images", imagetaskendpoint.GetAllImages)
 		taskgroup.PUT("start_task", taskendpoint.StartTask)
 		taskgroup.PUT("stop_task", taskendpoint.StopTask)
+		taskgroup.PUT("modify_task", taskendpoint.ModifyTask)
 		taskgroup.GET("image_task_list", imagetaskendpoint.ImageTaskList)
 		taskgroup.GET("get_small_tasks", smalltaskendpoint.GetSmallTasks)
 		taskgroup.GET("task_all_images", taskendpoint.GetTaskAllImages)
