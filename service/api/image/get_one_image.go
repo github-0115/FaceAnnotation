@@ -21,6 +21,7 @@ type GetImageRep struct {
 	Md5         string                 `json:"md5"`
 	PointsRep   *switchpoint.PointsRep `json:"points_rep"`
 	PointType   int64                  `json:"point_type"`
+	Count       int64                  `json:"count"`
 	Areas       string                 `json:"areas"`
 }
 
@@ -50,8 +51,9 @@ func GetOneImage(c *gin.Context) {
 		return
 	}
 	var (
-		imageModel *imagemodel.ImageModel
-		spRep      *switchpoint.PointsRep
+		imageModel   *imagemodel.ImageModel
+		spRep        *switchpoint.PointsRep
+		alreadyCount int64 = 0
 	)
 	//fineTune
 	if strings.EqualFold(userColl.Identity, usermodel.UserIdentity.FineTune) && strings.EqualFold(smallTaskModel.Areas, usermodel.UserIdentity.FineTune) {
@@ -112,6 +114,7 @@ func GetOneImage(c *gin.Context) {
 			if timeOutModels == nil {
 				imageModel = image
 				spRep = switchpoint.FineTuneSwitchPoint(smallTaskModel.PointType, imageModel)
+				alreadyCount = smallTaskModel.PointType
 				break
 			}
 			var flag bool = false
@@ -138,6 +141,7 @@ func GetOneImage(c *gin.Context) {
 
 			imageModel = image
 			spRep = switchpoint.FineTuneSwitchPoint(smallTaskModel.PointType, imageModel)
+			alreadyCount = smallTaskModel.PointType
 			break
 		}
 
@@ -199,7 +203,7 @@ func GetOneImage(c *gin.Context) {
 			}
 			if timeOutModels == nil {
 				imageModel = image
-				spRep = switchpoint.SwitchAlreadyPoint(smallTaskModel.PointType, imageModel)
+				alreadyCount, spRep = switchpoint.SwitchAlreadyPoint(smallTaskModel.PointType, imageModel)
 				break
 			}
 			var flag bool = false
@@ -225,7 +229,7 @@ func GetOneImage(c *gin.Context) {
 			}
 
 			imageModel = image
-			spRep = switchpoint.SwitchAlreadyPoint(smallTaskModel.PointType, imageModel)
+			alreadyCount, spRep = switchpoint.SwitchAlreadyPoint(smallTaskModel.PointType, imageModel)
 			break
 		}
 	}
@@ -256,6 +260,7 @@ func GetOneImage(c *gin.Context) {
 		Md5:         imageModel.Md5,
 		PointsRep:   spRep,
 		PointType:   smallTaskModel.PointType,
+		Count:       alreadyCount,
 		Areas:       smallTaskModel.Areas,
 	}
 

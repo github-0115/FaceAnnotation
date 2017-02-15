@@ -64,7 +64,7 @@ func ImageCreateTask(c *gin.Context) {
 	case 95:
 		areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "leftEar", "rightEar", "mouth", "nouse", "face"}
 	default:
-		areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "leftEar", "rightEar", "mouth", "nouse", "face"}
+		areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "mouth", "nouse", "face"}
 	}
 
 	tasks := make([]*taskmodel.TaskModel, 0, 0)

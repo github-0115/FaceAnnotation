@@ -57,7 +57,7 @@ type ThrResRep struct {
 	Points      []*imagemodel.Point `json:"points"`
 }
 
-func SwitchAlreadyPoint(pointType int64, image *imagemodel.ImageModel) *PointsRep {
+func SwitchAlreadyPoint(pointType int64, image *imagemodel.ImageModel) (int64, *PointsRep) {
 	log.Info(fmt.Sprintf("image = %s switch already point", image.Md5))
 
 	fineCount, fineres := getFineTuneRes(image)
@@ -92,138 +92,142 @@ func SwitchAlreadyPoint(pointType int64, image *imagemodel.ImageModel) *PointsRe
 		}
 		finepRep = pRep
 	}
-	fmt.Println("finepRep", finepRep)
+
 	//import point
 	_, thrRes := getImportPoint(pointType, image)
 	if thrRes == nil {
-		fmt.Println("thrRes", thrRes)
 		//face++ point
 		_, thrRes = faceResSwitchPoint(pointType, image)
 	}
-	fmt.Println("thrRes", thrRes)
+
 	// nil
 	nilRep := SwitchNilPoint(pointType)
-	fmt.Println("nilRep", nilRep)
 	if finepRep == nil && thrRes == nil {
-		return nilRep
+		return 0, nilRep
 	}
-	pRep := &PointsRep{}
+	var (
+		count int64 = 0
+		pRep        = &PointsRep{}
+	)
+
 	switch pointType {
 
 	case 5:
 		if finepRep == nil {
 			if thrRes == nil {
-				return nilRep
+				return 0, nilRep
 			} else {
-				return thrRes
+				return 0, thrRes
 			}
 		} else {
 			if fineCount >= int(pointType) {
-				rep := switchFullPoint(fineCount, pointType, finepRep)
-				pRep = rep
+				pRep = switchFullPoint(fineCount, pointType, finepRep)
+				return pointType, pRep
 			} else {
+
 				if thrRes != nil {
-					rep := switchNotFullPoint(fineCount, pointType, finepRep, thrRes)
-					pRep = rep
+					count, pRep = switchNotFullPoint(fineCount, pointType, finepRep, thrRes)
 				} else {
-					rep := switchNotFullPoint(fineCount, pointType, finepRep, nilRep)
-					pRep = rep
+					count, pRep = switchNotFullPoint(fineCount, pointType, finepRep, nilRep)
 				}
+				return count, pRep
 			}
 		}
-		return pRep
+		return 0, pRep
 	case 27:
 		if finepRep == nil {
 			if thrRes == nil {
-				return nilRep
+				return 0, nilRep
 			} else {
-				return thrRes
+				return 0, thrRes
 			}
 		} else {
 			if fineCount >= int(pointType) {
-				rep := switchFullPoint(fineCount, pointType, finepRep)
-				pRep = rep
+				pRep = switchFullPoint(fineCount, pointType, finepRep)
+				return pointType, pRep
 			} else {
+
 				if thrRes != nil {
-					rep := switchNotFullPoint(fineCount, pointType, finepRep, thrRes)
-					pRep = rep
+					count, pRep = switchNotFullPoint(fineCount, pointType, finepRep, thrRes)
 				} else {
-					rep := switchNotFullPoint(fineCount, pointType, finepRep, nilRep)
-					pRep = rep
+					count, pRep = switchNotFullPoint(fineCount, pointType, finepRep, nilRep)
 				}
+				return count, pRep
 			}
 		}
-		return pRep
+		return 0, pRep
 	case 68:
 		if finepRep == nil {
 			if thrRes == nil {
-				return nilRep
+				return 0, nilRep
 			} else {
-				log.Info(fmt.Sprintf("image = %s switch already point%d mouth%s=", image.Md5, len(thrRes.Mouth), thrRes.Mouth))
-				return thrRes
+				return 0, thrRes
 			}
 		} else {
+
 			if fineCount >= int(pointType) {
-				rep := switchFullPoint(fineCount, pointType, finepRep)
-				pRep = rep
+				pRep = switchFullPoint(fineCount, pointType, finepRep)
+				return pointType, pRep
 			} else {
+
 				if thrRes != nil {
-					rep := switchNotFullPoint(fineCount, pointType, finepRep, thrRes)
-					pRep = rep
+					count, pRep = switchNotFullPoint(fineCount, pointType, finepRep, thrRes)
 				} else {
-					rep := switchNotFullPoint(fineCount, pointType, finepRep, nilRep)
-					pRep = rep
+					count, pRep = switchNotFullPoint(fineCount, pointType, finepRep, nilRep)
 				}
+				return count, pRep
 			}
 		}
-		return pRep
+		return 0, pRep
 	case 83:
 		if finepRep == nil {
 			if thrRes == nil {
-				return nilRep
+				return 0, nilRep
 			} else {
-				return thrRes
+				return 0, thrRes
 			}
 		} else {
+
 			if fineCount >= int(pointType) {
-				rep := switchFullPoint(fineCount, pointType, finepRep)
-				pRep = rep
+				pRep = switchFullPoint(fineCount, pointType, finepRep)
+				return pointType, pRep
 			} else {
+
 				if thrRes != nil {
-					rep := switchNotFullPoint(fineCount, pointType, finepRep, thrRes)
-					pRep = rep
+					count, pRep = switchNotFullPoint(fineCount, pointType, finepRep, thrRes)
 				} else {
-					rep := switchNotFullPoint(fineCount, pointType, finepRep, nilRep)
-					pRep = rep
+					count, pRep = switchNotFullPoint(fineCount, pointType, finepRep, nilRep)
 				}
+				return count, pRep
 			}
 		}
-		return pRep
+		return 0, pRep
 	case 95:
 		if finepRep == nil {
 			if thrRes == nil {
-				return nilRep
+				return 0, nilRep
 			} else {
-				return thrRes
+				return 0, thrRes
 			}
 		} else {
+
 			if fineCount >= int(pointType) {
-				rep := switchFullPoint(fineCount, pointType, finepRep)
-				pRep = rep
+				pRep = switchFullPoint(fineCount, pointType, finepRep)
+				return pointType, pRep
 			} else {
+
 				if thrRes != nil {
-					rep := switchNotFullPoint(fineCount, pointType, finepRep, thrRes)
-					pRep = rep
+					count, pRep = switchNotFullPoint(fineCount, pointType, finepRep, thrRes)
 				} else {
-					rep := switchNotFullPoint(fineCount, pointType, finepRep, nilRep)
-					pRep = rep
+					count, pRep = switchNotFullPoint(fineCount, pointType, finepRep, nilRep)
 				}
+				return count, pRep
 			}
 		}
-		return pRep
+		return 0, pRep
 	}
 
-	return nilRep
+	return 0, nilRep
 }
 
 func switchFullPoint(fineCount int, pointType int64, finepRep *PointsRep) *PointsRep {
@@ -283,16 +287,16 @@ func switchFullPoint(fineCount int, pointType int64, finepRep *PointsRep) *Point
 	return nil
 }
 
-func switchNotFullPoint(fineCount int, pointType int64, finepRep *PointsRep, thrRes *PointsRep) *PointsRep {
+func switchNotFullPoint(fineCount int, pointType int64, finepRep *PointsRep, thrRes *PointsRep) (int64, *PointsRep) {
 	log.Info(fmt.Sprintf("image switch not full point"))
 	pRep := &PointsRep{}
 	switch pointType {
 	case 5:
-		pRep.LeftEye = append(pRep.LeftEye, finepRep.LeftEye[0])
-		pRep.RightEye = append(pRep.RightEye, finepRep.RightEye[0])
-		pRep.Nouse = append(pRep.Nouse, finepRep.Nouse[0])
-		pRep.Mouth = finepRep.Mouth[0:2]
-		return pRep
+		pRep.LeftEye = append(pRep.LeftEye, thrRes.LeftEye[0])
+		pRep.RightEye = append(pRep.RightEye, thrRes.RightEye[0])
+		pRep.Nouse = append(pRep.Nouse, thrRes.Nouse[0])
+		pRep.Mouth = thrRes.Mouth[0:2]
+		return 0, pRep
 	case 27:
 
 		pRep.LeftEyeBrow = thrRes.LeftEyeBrow
@@ -306,7 +310,7 @@ func switchNotFullPoint(fineCount int, pointType int64, finepRep *PointsRep, thr
 		pRep.Mouth = finepRep.Mouth[0:2]
 		pRep.Mouth = append(pRep.Mouth, thrRes.Mouth[2], thrRes.Mouth[3], thrRes.Mouth[4], thrRes.Mouth[5])
 
-		return pRep
+		return 5, pRep
 	case 68:
 		rep := &PointsRep{
 			LeftEyeBrow:  make([]*imagemodel.Point, 5),
@@ -350,7 +354,7 @@ func switchNotFullPoint(fineCount int, pointType int64, finepRep *PointsRep, thr
 			copy(rep.Face, thrRes.Face)
 		}
 
-		return rep
+		return int64(fineCount), rep
 	case 83:
 		rep := &PointsRep{
 			LeftEyeBrow:  make([]*imagemodel.Point, 10),
@@ -410,7 +414,7 @@ func switchNotFullPoint(fineCount int, pointType int64, finepRep *PointsRep, thr
 			copy(rep.Mouth[len(finepRep.Mouth):], thrRes.Mouth[len(finepRep.Mouth):])
 		}
 
-		return rep
+		return int64(fineCount), rep
 	case 95:
 		rep := &PointsRep{
 			LeftEyeBrow:  make([]*imagemodel.Point, 10),
@@ -496,10 +500,10 @@ func switchNotFullPoint(fineCount int, pointType int64, finepRep *PointsRep, thr
 			copy(rep.Mouth[len(finepRep.Mouth):], thrRes.Mouth[len(finepRep.Mouth):])
 		}
 
-		return rep
+		return int64(fineCount), rep
 	}
 
-	return nil
+	return 0, nil
 }
 
 func getImportPoint(pointType int64, image *imagemodel.ImageModel) (int, *PointsRep) {
@@ -965,7 +969,8 @@ func FineTuneSwitchPoint(pointType int64, image *imagemodel.ImageModel) *PointsR
 	log.Info(fmt.Sprintf("image fineTune = %s switch point", image.Md5))
 	if image.Results[strconv.Itoa(int(pointType))] == nil {
 		log.Info(fmt.Sprintf("image  = %s switch point", image.Md5))
-		return SwitchAlreadyPoint(pointType, image)
+		_, rep := SwitchAlreadyPoint(pointType, image)
+		return rep
 	}
 	log.Info(fmt.Sprintf("image fineTune = %s switch point", image.Md5))
 	var areas = []string{"leftEyebrow", "rightEyebrow", "leftEye", "rightEye", "leftEar", "rightEar", "mouth", "nouse", "face"}

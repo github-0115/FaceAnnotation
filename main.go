@@ -63,7 +63,6 @@ func main() {
 	imagegroup.Use(middleware.AuthToken)
 	{
 		imagegroup.GET("get_one_image", imageendpoint.GetOneImage)
-		//		imagegroup.GET("get_image", imageendpoint.GetImage)
 		imagegroup.POST("save_image", imageendpoint.SaveImageRes)
 		imagegroup.POST("import_image", dataendpoint.ImportImage)
 		imagegroup.POST("import_images", dataendpoint.ImportImages)

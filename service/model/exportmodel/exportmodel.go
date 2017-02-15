@@ -38,8 +38,9 @@ type Rep struct {
 }
 
 type Res struct {
-	Name   string              `json:"name"`
-	Points []*imagemodel.Point `json:"url"`
+	Name      string              `json:"name"`
+	PointType int64               `json:"point_type"`
+	Points    []*imagemodel.Point `json:"points"`
 }
 
 var (
@@ -47,6 +48,7 @@ var (
 )
 
 func ImageDataZip(images []*imagemodel.ImageModel, ress []*Res, resName string) (string, error) {
+
 	// 创建一个缓冲区用来保存压缩文件内容
 	buf := new(bytes.Buffer)
 
@@ -86,6 +88,16 @@ func ImageDataZip(images []*imagemodel.ImageModel, ress []*Res, resName string) 
 	err = w.Close()
 	if err != nil {
 		log.Error(fmt.Sprintf("close file err%v", err))
+	}
+
+	isExist, _ := PathExists(dirPath)
+
+	if !isExist {
+		err := os.Mkdir(dirPath, 0777)
+		if err != nil {
+			log.Error(fmt.Sprintf("create dir err%v", err))
+			return "", ErrCreateDir
+		}
 	}
 
 	// 将压缩文档内容写入文件

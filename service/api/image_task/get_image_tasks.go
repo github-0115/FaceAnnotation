@@ -106,10 +106,6 @@ func ImageTaskList(c *gin.Context) {
 		}
 
 		if tasks == nil {
-			//			twoChildren := &TwoChildren{}
-			//			threeChildren := &ThreeChildren{}
-			//			twoChildren.Children = append(twoChildren.Children, threeChildren)
-			//			taskRep.Children = append(taskRep.Children, twoChildren)
 			taskList = append(taskList, taskRep)
 			continue
 		}
@@ -134,8 +130,6 @@ func ImageTaskList(c *gin.Context) {
 			}
 
 			if smallTasks == nil {
-				//				threeChildren := &ThreeChildren{}
-				//				twoChildren.Children = append(twoChildren.Children, threeChildren)
 				taskRep.Children = append(taskRep.Children, twoChildren)
 				continue
 			}

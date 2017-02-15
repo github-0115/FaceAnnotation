@@ -136,12 +136,6 @@ func GetSmallTasks(c *gin.Context) {
 			if count >= len(smalltaskList) {
 				break
 			}
-			//			log.Error(fmt.Sprintf("not small task to allot err %s", err))
-			//			c.JSON(200, gin.H{
-			//				"code":    vars.ErrNotSmallTask.Code,
-			//				"message": vars.ErrNotSmallTask.Msg,
-			//			})
-			//			return
 		}
 	}
 

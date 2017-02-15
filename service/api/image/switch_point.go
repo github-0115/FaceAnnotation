@@ -923,8 +923,24 @@ func GetTaskNotFineResults(image *imagemodel.ImageModel, task *taskmodel.TaskMod
 	return apres
 }
 
+func GetSmallTaskFineResults(image *imagemodel.ImageModel, task *smalltaskmodel.SmallTaskModel) *AllPointsRep {
+	log.Info(fmt.Sprintf("get small task image fine res = %s switch point", image.Md5))
+	apres := &AllPointsRep{}
+
+	if image.FineResults[strconv.Itoa(int(task.PointType))] != nil {
+		apres.FineResult = smallTaskFineResToPoints(image.FineResults[strconv.Itoa(int(task.PointType))], task.SmallTaskId)
+		apres.ResultRep = &ResultRep{}
+		apres.Status = 1
+		apres.PointType = task.PointType
+		return apres
+	}
+
+	fmt.Println(apres)
+	return apres
+}
+
 func GetSmallTaskNotFineResults(image *imagemodel.ImageModel, task *smalltaskmodel.SmallTaskModel) *AllPointsRep {
-	log.Info(fmt.Sprintf("get task image all not fine res = %s switch point", image.Md5))
+	log.Info(fmt.Sprintf("get small task image not fine res = %s switch point", image.Md5))
 	apres := &AllPointsRep{}
 
 	if image.Results[strconv.Itoa(int(task.PointType))] != nil {
@@ -937,6 +953,38 @@ func GetSmallTaskNotFineResults(image *imagemodel.ImageModel, task *smalltaskmod
 
 	fmt.Println(apres)
 	return apres
+}
+
+func smallTaskFineResToPoints(fineResults []*imagemodel.FineResult, taskId string) []*imagemodel.Points {
+	fineRes := make([]*imagemodel.Points, 0, 0)
+
+	for _, fine := range fineResults {
+		if !strings.EqualFold(fine.SmallTaskId, taskId) {
+			continue
+		}
+		points := make([]*imagemodel.Point, 0, 0)
+		//		var p *imagemodel.Point
+		for _, point := range fine.Result {
+			if point != nil {
+				for _, res := range point {
+					points = append(points, res)
+				}
+			}
+		}
+
+		pointsRes := &imagemodel.Points{
+			SmallTaskId: fine.SmallTaskId,
+			User:        fine.User,
+			Points:      points,
+			Sys:         fine.Sys,
+			CreatedAt:   fine.CreatedAt,
+			FinishedAt:  fine.FinishedAt,
+		}
+
+		fineRes = append(fineRes, pointsRes)
+	}
+
+	return fineRes
 }
 
 func smallTaskResToPoints(result map[string][]*imagemodel.Points, taskId string, area string) *ResultRep {

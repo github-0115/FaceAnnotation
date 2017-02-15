@@ -79,7 +79,12 @@ func GetSmallTaskAllImages(c *gin.Context) {
 		return
 	}
 
-	images := getHasPointImages(smallTaskImages, smallTaskModel) // area string, limitCount int64, stmId string, pointType int64
+	var images []*imagemodel.ImageModel
+	if strings.EqualFold(smallTaskModel.Areas, usermodel.UserIdentity.FineTune) {
+		images = getFinePointImages(smallTaskImages, smallTaskModel)
+	} else {
+		images = getHasPointImages(smallTaskImages, smallTaskModel) // area string, limitCount int64, stmId string, pointType int64
+	}
 
 	var results []*imagemodel.ImageModel
 	if len(images) < pageIndex*pageSize && len(images) > (pageIndex-1)*pageSize {
@@ -94,7 +99,12 @@ func GetSmallTaskAllImages(c *gin.Context) {
 			continue
 		}
 		thrRes := imageend.GetThrResults(image)
-		res := imageend.GetSmallTaskNotFineResults(image, smallTaskModel)
+		var res *imageend.AllPointsRep
+		if strings.EqualFold(smallTaskModel.Areas, usermodel.UserIdentity.FineTune) {
+			res = imageend.GetSmallTaskFineResults(image, smallTaskModel)
+		} else {
+			res = imageend.GetSmallTaskNotFineResults(image, smallTaskModel)
+		}
 
 		imRes := &SmallTaskImagesRes{
 			Md5:       imagesDomain + image.Md5,
@@ -103,14 +113,21 @@ func GetSmallTaskAllImages(c *gin.Context) {
 		}
 		rep = append(rep, imRes)
 	}
-	notCount := getNotCompleteImageCount(smallTaskImages, smallTaskModel.Areas, smallTaskModel.LimitCount, smallTaskModel.SmallTaskId, smallTaskModel.PointType)
+
+	var completeCount int64 = 0
+	if strings.EqualFold(smallTaskModel.Areas, usermodel.UserIdentity.FineTune) {
+		completeCount = getFineCompleteImageCount(images, smallTaskModel)
+	} else {
+		completeCount = getCompleteImageCount(images, smallTaskModel)
+	}
+
 	total := int(math.Ceil(float64(len(smallTaskModel.SmallTaskImages)) / float64(pageSize)))
 
 	c.JSON(200, gin.H{
 		"code":       0,
 		"page":       pageIndex,
 		"total":      total,
-		"count":      len(smallTaskModel.SmallTaskImages) - int(notCount),
+		"count":      completeCount,
 		"records":    len(smallTaskModel.SmallTaskImages),
 		"images":     rep,
 		"point_type": smallTaskModel.PointType,
@@ -140,29 +157,78 @@ func getHasPointImages(imageList []*imagemodel.ImageModel, smallTaskModel *small
 	return list
 }
 
-//func getNotCompleteImageCount(imageList []*imagemodel.ImageModel, area string, limitCount int64, stmId string, pointType int64) int64 {
-//	list := make([]*imagemodel.ImageModel, 0, 0)
-//	for _, image := range imageList {
-//		result := image.Results[strconv.Itoa(int(pointType))][area]
+func getFinePointImages(imageList []*imagemodel.ImageModel, smallTaskModel *smalltaskmodel.SmallTaskModel) []*imagemodel.ImageModel {
+	list := make([]*imagemodel.ImageModel, 0, 0)
 
-//		if len(result) == 0 || result == nil {
-//			list = append(list, image)
-//			continue
-//		}
+	for _, image := range imageList {
+		results := image.FineResults[strconv.Itoa(int(smallTaskModel.PointType))]
 
-//		var (
-//			count int64 = 0
-//		)
-//		for _, res := range result {
+		if len(results) == 0 || results == nil {
+			continue
+		}
 
-//			if strings.EqualFold(res.SmallTaskId, stmId) {
-//				count += 1
-//			}
-//		}
+		for _, res := range results {
+			if strings.EqualFold(res.SmallTaskId, smallTaskModel.SmallTaskId) {
+				list = append(list, image)
+				break
+			}
+		}
 
-//		if count < limitCount {
-//			list = append(list, image)
-//		}
-//	}
-//	return int64(len(list))
-//}
+	}
+
+	return list
+}
+
+func getFineCompleteImageCount(imageList []*imagemodel.ImageModel, task *smalltaskmodel.SmallTaskModel) int64 {
+	list := make([]*imagemodel.ImageModel, 0, 0)
+	for _, image := range imageList {
+		results := image.FineResults[strconv.Itoa(int(task.PointType))]
+
+		if len(results) == 0 || results == nil {
+			//			list = append(list, image)
+			continue
+		}
+
+		var (
+			count int64 = 0
+		)
+		for _, res := range results {
+
+			if strings.EqualFold(res.SmallTaskId, task.SmallTaskId) {
+				count += 1
+			}
+		}
+
+		if count >= task.LimitCount {
+			list = append(list, image)
+		}
+	}
+	return int64(len(list))
+}
+
+func getCompleteImageCount(imageList []*imagemodel.ImageModel, task *smalltaskmodel.SmallTaskModel) int64 {
+	list := make([]*imagemodel.ImageModel, 0, 0)
+	for _, image := range imageList {
+		results := image.Results[strconv.Itoa(int(task.PointType))][task.Areas]
+
+		if len(results) == 0 || results == nil {
+			//			list = append(list, image)
+			continue
+		}
+
+		var (
+			count int64 = 0
+		)
+		for _, res := range results {
+
+			if strings.EqualFold(res.SmallTaskId, task.SmallTaskId) {
+				count += 1
+			}
+		}
+
+		if count >= task.LimitCount {
+			list = append(list, image)
+		}
+	}
+	return int64(len(list))
+}

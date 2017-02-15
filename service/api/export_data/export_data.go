@@ -71,8 +71,9 @@ func ExportData(c *gin.Context) {
 			continue
 		}
 		eRes := &exportmodel.Res{
-			Name:   image.Url,
-			Points: points,
+			Name:      image.Url,
+			PointType: smallTask.PointType,
+			Points:    points,
 		}
 		res = append(res, eRes)
 
